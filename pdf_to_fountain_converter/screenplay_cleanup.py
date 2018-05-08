@@ -18,17 +18,7 @@ delimiters_dict = {'(': ')',
 scene_headings = ['INT.',
                   'EXT.']
 
-# Rules:
-# 1. If starts with a word is all caps, enter charcacter mode untill you see the :.  else throw parsing error.
-#
-# that ends with :, it's a starting point of a dialog.
-#       then read dialog untill...
-#           One of the other rules comes up
-# 2. If it starts with [,< - it's a stage direction. comment.
-# 3. if it starts with -- and is quite long, it might be a scene break.
-# 4. comment whenever not in dialog mode!
-# 5. If one of these expressions is in this line, it's a new scene (Commercial break, New scene,
-#       TODO can't be a new scene more than once in a row...
+# TODO fix the bug that shows in line 307 in 1x01_reformatted.txt
 
 
 def run(src, dst):
