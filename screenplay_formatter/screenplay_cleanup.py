@@ -10,15 +10,15 @@ INT. PLACE, TIME - a new scene.
 # comment - Stage directions & parantheticals should be ignored by the parser, thus we will comment them out.
 """
 import argparse
-from io import StringIO
+import re
 
 delimiters_dict = {'(': ')',
                    '[': ']',
                    '<': '>'}
+delimiters = set(d for d in (list(delimiters_dict.keys()) + list(delimiters_dict.values())))
 scene_headings = ['INT.',
                   'EXT.']
 
-# TODO fix the bug that shows in line 307 in 1x01_reformatted.txt
 
 
 def run(src, dst):
@@ -36,8 +36,34 @@ def get_words_generator(screenplay_as_str):
     for line in screenplay_as_str.split('\n'):
         yield '\n'
         for word in line.split():
-            yield word
+            if word_has_parenthesis_inside(word):
+                word_a, word_b = split_word_with_parenthesis(word)
+                yield word_a
+                yield word_b
+            else:
+                # break word and yield before and after delimiter
+                # TODO solve this issue in the "process parenthesis" and "process character" combination
+                yield word
 
+
+def word_has_parenthesis_inside(word):
+    proper_length = len(word) > 2
+    has_delimiter = any((d in word[1:-1]) for d in delimiters)
+    splitted = re.split("|".join("\\"+d for d in delimiters), word)
+    is_letters = lambda w: any(c.isalpha() for c in w)
+    has_ascii_after_split = all(is_letters(w) for w in splitted)
+
+    return proper_length and has_delimiter and has_ascii_after_split
+
+
+def split_word_with_parenthesis(word):
+    for l in word:
+        if delimiters_dict.get(l, ''):
+            # left delimiter is inside the word
+            return word.split(l)[0], l + word.split(l)[1]
+        if l in delimiters_dict.values():
+            # right delimiter is inside word
+            return word.split(l)[0] + l, word.split(l)[1]
 
 def process(words_generator):
     result = ""
@@ -47,13 +73,14 @@ def process(words_generator):
             if word == '\n':
                 result += word
                 word = next(words_generator)
-            if is_scene_heading(word):
+                if is_character(word):
+                    # character can only appear after '\n'
+                    block, word = process_character_block(word, words_generator)
+                    result = result[:-1] +  block + '\n'
+            elif is_scene_heading(word):
                 result = result[:-1] + process_scene_heading(word, words_generator)
                 result += "\n** NEW SCENE **"
                 word = next(words_generator)
-            elif is_character(word):
-                block, word = process_character_block(word, words_generator)
-                result = result[:-1] +  block
             elif is_parenthesis(word):
                 result += '\n' + process_parenthesis(word, words_generator)
                 word = next(words_generator)
@@ -67,8 +94,10 @@ def process_character_block(word, word_generator):
     block = process_character_name(word, word_generator)
     while True:
         word = next(word_generator)
-        if is_parenthesis(word) or is_character(word) or is_scene_heading(word):
+        if is_parenthesis(word) or is_scene_heading(word):
            return block, word
+        if word == '\n':
+            return block, word
         else:
             block += (word + ' ')
 
@@ -81,9 +110,9 @@ def process_character_name(current_word, word_generator):
             else:
                 next_word = next(word_generator)
                 if is_parenthesis(next_word):
-                    return current_word + process_parenthesis(next_word, word_generator) + process_character_name(next(word_generator), word_generator)
+                    return current_word + '\n' + process_parenthesis(next_word, word_generator)
                 else:
-                    return current_word + process_character_name(next_word, word_generator)
+                    return current_word + ' ' + process_character_name(next_word, word_generator)
     except StopIteration:
         raise ValueError("A character name did not end with ':' as expected. Please check screenplay.")
 
@@ -124,7 +153,7 @@ def process_scene_heading(word, word_generator):
 
 
 def is_character(word):
-    return (word.isupper() and len(word) > 3 and word[:-1].isalpha())
+    return (word.isupper() and len(word) > 2 and word[:-1].isalpha())
 
 def is_scene_heading(word):
     return any(word.startswith(s) for s in scene_headings)
