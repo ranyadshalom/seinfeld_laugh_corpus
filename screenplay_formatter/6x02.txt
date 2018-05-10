@@ -661,15 +661,15 @@ POLICE: Okay, sir, and what's your name?
 
 KRAMER: My name is Kramer. You know who I am dammit!
 
-Genderson: I told you not to take the turnpike.
+GENDERSON: I told you not to take the turnpike.
 
 KRAMER: I thought we would blend in.
 
-Genderson: If we took the palisades this never have happened.
+GENDERSON: If we took the palisades this never have happened.
 
 KRAMER: we would have had all that bridge traffic.
 
-Genderson: Ah, just drive.
+GENDERSON: Ah, just drive.
 
 
 

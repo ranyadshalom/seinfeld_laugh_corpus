@@ -17,7 +17,9 @@ delimiters_dict = {'(': ')',
                    '<': '>'}
 delimiters = set(d for d in (list(delimiters_dict.keys()) + list(delimiters_dict.values())))
 scene_headings = ['INT.',
-                  'EXT.']
+                  'EXT.',
+                  '===',
+                  '---']
 
 
 
