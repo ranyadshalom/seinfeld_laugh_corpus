@@ -22,7 +22,7 @@ import pysrt
 import re
 from collections import namedtuple
 
-Subtitle = namedtuple('Subtitle', ["txt", "start", "end"])   # text-dialog, start-in seconds, end-in seconds
+Subtitle = namedtuple('Subtitle', ["txt", "start", "end"])   # text (dialog), start (in seconds), end (in seconds)
 
 def run(screenplay_path, srt_path, laugh_track_path):
     result = []
@@ -35,48 +35,58 @@ def run(screenplay_path, srt_path, laugh_track_path):
     # align the times of laughter with subtitles
     subs_and_laughtimes = subs + laugh_track
     subs_and_laughtimes.sort(key = lambda x: x.end if isinstance(x, Subtitle) else x)
-    pass
+
+    result = align_subtitles_with_screenplay(subs_and_laughtimes, screenplay_parsed)
+    print([line for line in result]) # TODO remove this. for testing purposes
 
 
 def align_subtitles_with_screenplay(subs_and_laughtimes, screenplay):
-    # TODO align dialog with screenplay
+    result = []
     chunk = []
-    txts = []
-#
-#    for item in subs_and_laughtimes:
-#        chunk.append(item)
-#        if isinstance(item, Subtitle):
-#            if '-'==item.txt[0] or '\n-' in item.txt:
-#                # has at least 2 characters speaking. Split it.
-#
-#                we must have a match untill the dash. if not, raise eexception
-#                # TODO this is a special case, need to break item!
-#                txts.extend([t for t in sub.txt.split('-') if t])
-#            else:
-#                txts.extend([sub.txt])
-#            if match_txts_against_screenplay(txts, current_dialog):
-#                result.append(previous character name)
-#                result.append(subs and laughes with timestamps untill that point)
-#                txts = []
-#                chunk = []
-#                advance to next dialog line
-#
-    # times: subtitle start, subtitle end. LOL can be after subtitle end only.
-    #
-    #         match character speech: for chunk of dialog, scan subtitles untill 90% match?
+    txt = ""
+    screenplay_lines = iter(screenplay)
+    result.append(next(screenplay_lines))
+    next_line = next(screenplay_lines)
+
+    for item in subs_and_laughtimes:
+        chunk.append(item)
+        if isinstance(item, Subtitle):
+            txt += item.txt + '\n'
+            if match_txts_against_screenplay(txt, next_line[1]):
+                print("MATCH! \n%s\n%s" % (txt, next_line[1]))
+                result.extend(chunk)
+                result.append(next(screenplay_lines)) # next character name
+                next_line = next(screenplay_lines)
+                if next_line[0] != 'dialog':
+                    raise ValueError("screenplay file violates character/dialog order!")
+                txt = ""
+                chunk = []
+
+    return result
 
 
+def match_txts_against_screenplay(txt_from_subtitles, txt_from_dialog):
+    """
+    # TODO the right way is to find the maximum match for each line of dialog!
+    # TODO usually when the 'intersection' variable freezes, it means that the maximum match has been reached.
+    """
+    txt_from_subtitles = re.sub(r'\\','',txt_from_subtitles) # remove escape characters from subtitles.
+    txt_from_dialog = re.sub(r'[\`\’]', '\'', txt_from_dialog) # allow only ' character as a dash
 
-    # for line in
-    # 1. read .txt files to strings
-    # 2. output should be screenplay only!
-    # for each line in the screenplay, if it matches current line in the srt (with 90% match)
-    # write it down with the starting & ending timestamp.
+    # remove punctuation
+    words_from_subtitles = set(re.split(r'[\s\,\.\?\!\;\:]', txt_from_subtitles.lower()))
+    words_from_dialog = set(re.split(r'[\s\,\.\?\!\;\:]', txt_from_dialog.lower()))
+
+    # calculate BOW intersection and union
+    intersection = len(words_from_dialog & words_from_subtitles)
+    union = len(words_from_dialog | words_from_subtitles)
+
+    return (intersection / union) >= 0.8
 
 
 def parse_screenplay(screenplay_path):
     result = []
-    with open(screenplay_path) as f:
+    with open(screenplay_path, encoding='utf8') as f:
         for line in f:
             if line[0] == '#' or line=='\n':
                 pass    # a comment, a new line...
@@ -121,7 +131,7 @@ def get_sub_time_in_seconds(sub_time):
     return sub_time.seconds + sub_time.minutes*60 + sub_time.milliseconds*0.001
 
 if __name__=='__main__':
-    parser = argparse.ArgumentParser(description="Extract laughter times (in seconds) in the laugh track")
+    parser = argparse.ArgumentParser(description="Merge 3 types of data (subtitles, laughter cues & screenplay) into one coherent file.")
     parser.add_argument('screenplay', help='A formatted screenplay, as the one put together by screenplay_formatter.py')
     parser.add_argument('srt', help='A matching subtitles file')
     parser.add_argument('laugh_track', help='Timestamps of laughs in the laugh-track as put together by laugh_extraction.py')
