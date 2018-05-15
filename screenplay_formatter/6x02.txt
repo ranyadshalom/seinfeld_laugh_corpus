@@ -20,7 +20,7 @@ ELAINE: Well, it's for my boss.
 
 STATIONER: What do you do?
 
-EXX: Whatever.
+ELAINE: Whatever.
 
 STATIONER: Well, we don't have any in stock right now but I would be happy to order it for you. Just give me your phone number and when it comes in I'll give you a call. You're name is?
 
@@ -47,8 +47,6 @@ JERRY: Why did you give him MY number?
 ELAINE: I think he's got ideas.
 
 JERRY: I wonder if any woman ever said that about Einstein?
-
-JERRY: Call me when the pencil comes in Okay?
 
 (On the street)
 

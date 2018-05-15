@@ -20,7 +20,7 @@ from collections import namedtuple
 
 # TODO: Character name should be closer to when a character starts speaking, not when a previous character finishes speaking.
 # TODO: Remove .srt formatting tags (<i>, <b>, <u>, </i>, </b>, </u>
-# TODO: Fine-tune the matching heuristics
+# TODO: Dynamic programming
 
 Subtitle = namedtuple('Subtitle', ["txt", "start", "end"])   # text (dialog), start (in seconds), end (in seconds)
 
@@ -56,7 +56,6 @@ def merge(screenplay_path, srt_path, laugh_track_path):
     final_result = aligned_subs + laugh_track
     final_result.sort(key = sort_key)
 
-    print([line for line in final_result]) # TODO remove this. for testing purposes
     return final_result
 
 
@@ -114,7 +113,7 @@ def align_subtitles_with_screenplay(subs, screenplay):
 
     for line in screenplay:
         if line[0]=='dialog':
-            next_subs = find_best_match_forward(subs[i:], line[1])
+            next_subs, match_ratio = find_best_match_forward(subs[i:], line[1])
             result.extend(next_subs)
             i += len(next_subs)
         else:
@@ -140,8 +139,8 @@ def find_best_match_forward(subs, txt_from_dialog):
         txt_from_dialog = re.sub(r'[\`\’]', '\'', txt_from_dialog) # allow only ' character as a dash
 
         # remove punctuation
-        words_from_subtitles = set(re.split(r'[\s\,\.\?\!\;\:]', txt_from_subtitles.lower()))
-        words_from_dialog = set(re.split(r'[\s\,\.\?\!\;\:]', txt_from_dialog.lower()))
+        words_from_subtitles = set(re.split(r'[\s\,\.\?\!\;\:"]', txt_from_subtitles.lower()))
+        words_from_dialog = set(re.split(r'[\s\,\.\?\!\;\:"]', txt_from_dialog.lower()))
 
         # calculate BOW intersection and union
         intersection = len(words_from_dialog & words_from_subtitles)
@@ -153,7 +152,7 @@ def find_best_match_forward(subs, txt_from_dialog):
         i += 1
         if match_scores[-1] == max(match_scores):
             # maximum matching has been found
-            return subs[:i - lookahead_buffer]
+            return max(match_scores), subs[:i - lookahead_buffer]
 
 
 def sort_key(item):

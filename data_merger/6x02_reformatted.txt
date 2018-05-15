@@ -31,7 +31,7 @@ Well, it's for my boss.
 STATIONER
 What do you do? 
 
-EXX
+ELAINE
 Whatever. 
 
 STATIONER
@@ -74,10 +74,6 @@ I think he's got ideas.
 
 JERRY
 I wonder if any woman ever said that about Einstein? 
-
-JERRY
-Call me when the pencil comes in Okay? 
-
 
 
 # (On the street)
