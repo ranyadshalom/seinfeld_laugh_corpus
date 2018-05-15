@@ -5,83 +5,59 @@ one file that includes all this data.
 output format:
 
 # CHARACTER
-00:00:00:00 (start timecode)
+0 (start time in seconds)
 diaolog dialog dialog
-00:00:00:00 (end timecode)
-LOL
-00:00:00:00 (start timecode)
+3.45 (end)
+**LOL**
+6.55
 dialog dialog dialog
-# CHARACTER
-dialog dialog
-00:00:00:00 (end timecode
-LOL
-
+[...]
 """
 import argparse
 import pysrt
 import re
 from collections import namedtuple
 
+# TODO: Character name should be closer to when a character starts speaking, not when a previous character finishes speaking.
+# TODO: Remove .srt formatting tags (<i>, <b>, <u>, </i>, </b>, </u>
+# TODO: Fine-tune the matching heuristics
+
 Subtitle = namedtuple('Subtitle', ["txt", "start", "end"])   # text (dialog), start (in seconds), end (in seconds)
 
-def run(screenplay_path, srt_path, laugh_track_path):
-    result = []
 
+def run(screenplay_path, srt_path, laugh_track_path, output_path):
+    result = merge(screenplay_path, srt_path, laugh_track_path)
+
+    write_to_file(result, output)
+
+
+def write_to_file(result, output):
+    with open(output, 'w') as f:
+        for line in result:
+            if isinstance(line, Subtitle):
+                # f.write("%f\n%s\n%f\n" % (line.start, line.txt, line.end))
+                f.write("%s\n" % (line.txt))
+            elif isinstance(line, float):
+                f.write("**LOL**\n")
+            else:
+                # character name
+                f.write("# %s" % line[1])
+
+
+def merge(screenplay_path, srt_path, laugh_track_path):
     # read and parse data
     screenplay_parsed = parse_screenplay(screenplay_path)
     subs = parse_subtitles(srt_path)
     laugh_track = parse_laugh_track(laugh_track_path)
 
+    # process data
+    aligned_subs = align_subtitles_with_screenplay(subs, screenplay_parsed)
     # align the times of laughter with subtitles
-    subs_and_laughtimes = subs + laugh_track
-    subs_and_laughtimes.sort(key = lambda x: x.end if isinstance(x, Subtitle) else x)
+    final_result = aligned_subs + laugh_track
+    final_result.sort(key = sort_key)
 
-    result = align_subtitles_with_screenplay(subs_and_laughtimes, screenplay_parsed)
-    print([line for line in result]) # TODO remove this. for testing purposes
-
-
-def align_subtitles_with_screenplay(subs_and_laughtimes, screenplay):
-    result = []
-    chunk = []
-    txt = ""
-    screenplay_lines = iter(screenplay)
-    result.append(next(screenplay_lines))
-    next_line = next(screenplay_lines)
-
-    for item in subs_and_laughtimes:
-        chunk.append(item)
-        if isinstance(item, Subtitle):
-            txt += item.txt + '\n'
-            if match_txts_against_screenplay(txt, next_line[1]):
-                print("MATCH! \n%s\n%s" % (txt, next_line[1]))
-                result.extend(chunk)
-                result.append(next(screenplay_lines)) # next character name
-                next_line = next(screenplay_lines)
-                if next_line[0] != 'dialog':
-                    raise ValueError("screenplay file violates character/dialog order!")
-                txt = ""
-                chunk = []
-
-    return result
-
-
-def match_txts_against_screenplay(txt_from_subtitles, txt_from_dialog):
-    """
-    # TODO the right way is to find the maximum match for each line of dialog!
-    # TODO usually when the 'intersection' variable freezes, it means that the maximum match has been reached.
-    """
-    txt_from_subtitles = re.sub(r'\\','',txt_from_subtitles) # remove escape characters from subtitles.
-    txt_from_dialog = re.sub(r'[\`\’]', '\'', txt_from_dialog) # allow only ' character as a dash
-
-    # remove punctuation
-    words_from_subtitles = set(re.split(r'[\s\,\.\?\!\;\:]', txt_from_subtitles.lower()))
-    words_from_dialog = set(re.split(r'[\s\,\.\?\!\;\:]', txt_from_dialog.lower()))
-
-    # calculate BOW intersection and union
-    intersection = len(words_from_dialog & words_from_subtitles)
-    union = len(words_from_dialog | words_from_subtitles)
-
-    return (intersection / union) >= 0.8
+    print([line for line in final_result]) # TODO remove this. for testing purposes
+    return final_result
 
 
 def parse_screenplay(screenplay_path):
@@ -127,8 +103,67 @@ def parse_subtitles(srt):
             result.append(Subtitle(txt=sub.text, start=start, end=end))
     return result
 
+
 def get_sub_time_in_seconds(sub_time):
     return sub_time.seconds + sub_time.minutes*60 + sub_time.milliseconds*0.001
+
+
+def align_subtitles_with_screenplay(subs, screenplay):
+    result = []
+    i = 0
+
+    for line in screenplay:
+        if line[0]=='dialog':
+            next_subs = find_best_match_forward(subs[i:], line[1])
+            result.extend(next_subs)
+            i += len(next_subs)
+        else:
+            try:
+                line.append(result[-1].end + 0.001 if result else 0)
+                result.append(line)
+            except AttributeError:
+                print("Bad matching. Subtitles ended before screenplay. Please check result.")
+    return result
+
+def find_best_match_forward(subs, txt_from_dialog):
+    """
+    Try to find the maximum match.
+    """
+    lookahead_buffer = 4    # how much forward to keep looking for a maximum match
+    i = 1
+    match_scores = [0 for i in range(lookahead_buffer)]
+    while True:
+        # will run untill match cannot improve anymore
+        txt_from_subtitles = "\n".join(sub.txt for sub in subs[:i])
+
+        txt_from_subtitles = re.sub(r'\\','',txt_from_subtitles) # remove escape characters from subtitles.
+        txt_from_dialog = re.sub(r'[\`\’]', '\'', txt_from_dialog) # allow only ' character as a dash
+
+        # remove punctuation
+        words_from_subtitles = set(re.split(r'[\s\,\.\?\!\;\:]', txt_from_subtitles.lower()))
+        words_from_dialog = set(re.split(r'[\s\,\.\?\!\;\:]', txt_from_dialog.lower()))
+
+        # calculate BOW intersection and union
+        intersection = len(words_from_dialog & words_from_subtitles)
+        union = len(words_from_dialog | words_from_subtitles)
+
+        match_scores.insert(0, intersection / union)
+        match_scores.pop()
+
+        i += 1
+        if match_scores[-1] == max(match_scores):
+            # maximum matching has been found
+            return subs[:i - lookahead_buffer]
+
+
+def sort_key(item):
+    if isinstance(item, Subtitle):
+        return item.end
+    elif isinstance(item, float):
+        return item
+    else:
+        # dialog. return its timestamp which is supposed to be its last element.
+        return item[-1]
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Merge 3 types of data (subtitles, laughter cues & screenplay) into one coherent file.")
@@ -139,5 +174,5 @@ if __name__=='__main__':
     args = parser.parse_args()
     screenplay, srt, laugh_track, output = args.screenplay, args.srt, args.laugh_track, args.output
 
-    result = run(screenplay, srt, laugh_track)
+    result = run(screenplay, srt, laugh_track, output)
 
