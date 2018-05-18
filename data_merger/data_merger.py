@@ -17,12 +17,14 @@ import argparse
 import pysrt
 import re
 from collections import namedtuple
+from collections import defaultdict
 
 # TODO: Character name should be closer to when a character starts speaking, not when a previous character finishes speaking.
 # TODO: Remove .srt formatting tags (<i>, <b>, <u>, </i>, </b>, </u>
 # TODO: Dynamic programming
 
 Subtitle = namedtuple('Subtitle', ["txt", "start", "end"])   # text (dialog), start (in seconds), end (in seconds)
+match = defaultdict(dict) # TODO the next dict should be a float dict with a default value of 0
 
 
 def run(screenplay_path, srt_path, laugh_track_path, output_path):
@@ -113,7 +115,7 @@ def align_subtitles_with_screenplay(subs, screenplay):
 
     for line in screenplay:
         if line[0]=='dialog':
-            next_subs, match_ratio = find_best_match_forward(subs[i:], line[1])
+            match_ratio, next_subs = find_best_match_forward(subs[i:], line[1])
             result.extend(next_subs)
             i += len(next_subs)
         else:
@@ -163,6 +165,65 @@ def sort_key(item):
     else:
         # dialog. return its timestamp which is supposed to be its last element.
         return item[-1]
+
+
+def get_optimal_match(dialog_lines, subtitles):
+    """
+    A dynamic programming algorithm that returns the optimal screenplay/subtitles match.
+    :param screenplay:
+    :param subtitles:
+    :return:
+    """
+    D = dialog_lines
+    S = subtitles
+
+    for i in range(len(D)):
+        for j in range(len(S)):
+            match[tuple(D[-i:])][tuple(S[j:])] = get_max_k(D[-i:], S[j:])
+
+def get_max_k(D, S):
+    """
+    finds a k that maximizes the score of the match
+    :param D:
+    :param S:
+    :return:
+    """
+    max_score = 0
+    max_k = None
+
+    for k in range(len(S)):
+        s = get_score(D[0], S[:k]) + match[tuple(D[1:])][S[k:]]
+        if s > max_score:
+            max_score = s
+            max_k = k
+
+    return (max_k, max_score)
+
+
+
+def get_score(dialog, subs):
+    """
+    :param subs: A list containing the substitles we try to match to this dialog line.
+    :param dialog:  A dialog line (i.e. a character's dialog block from the screenplay).
+    :return: the matching's score.
+    """
+    # will run untill match cannot improve anymore
+    txt_from_subtitles = "\n".join(sub.txt for sub in subs[:i])
+
+    txt_from_subtitles = re.sub(r'\\','',txt_from_subtitles) # remove escape characters from subtitles.
+    txt_from_dialog = re.sub(r'[\`\’]', '\'', dialog) # allow only ' character as a dash
+
+    # remove punctuation
+    words_from_subtitles = set(re.split(r'[\s\,\.\?\!\;\:"]', txt_from_subtitles.lower()))
+    words_from_dialog = set(re.split(r'[\s\,\.\?\!\;\:"]', txt_from_dialog.lower()))
+
+    # calculate BOW intersection and union
+    intersection = len(words_from_dialog & words_from_subtitles)
+    union = len(words_from_dialog | words_from_subtitles)
+
+    return intersection / union
+
+
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Merge 3 types of data (subtitles, laughter cues & screenplay) into one coherent file.")
