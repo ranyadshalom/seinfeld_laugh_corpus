@@ -19,6 +19,8 @@ import re
 from collections import namedtuple
 from collections import defaultdict
 from timeit import default_timer as timer
+import pickle
+import os
 
 # TODO: Character name should be closer to when a character starts speaking, not when a previous character finishes speaking.
 # TODO: Remove .srt formatting tags (<i>, <b>, <u>, </i>, </b>, </u>
@@ -69,8 +71,16 @@ def merge(screenplay_path, srt_path, laugh_track_path):
 
     # process data
     dialog_lines = [line[1] for line in screenplay_parsed if line[0]=='dialog']
-    delimiters = get_optimal_match(dialog_lines, subs)
 
+    # TODO remove the pickle area. it's for debugging
+    # (the idea is to save the processing time to debug the rest of the code)
+    if not os.path.isfile('delimiters.pickle'):
+        delimiters = get_optimal_match(dialog_lines, subs)
+        with open('delimiters.pickle', 'wb') as f:
+            pickle.dump(delimiters, f, pickle.HIGHEST_PROTOCOL)
+    else:
+        with open('delimiters.pickle', 'rb') as f:
+            delimiters = pickle.load(f)
     # aligned_subs = align_subtitles_with_screenplay(subs, screenplay_parsed)
     # align the times of laughter with subtitles
     final_result = aligned_subs + laugh_track
@@ -154,8 +164,9 @@ def get_optimal_match(dialog_lines, subtitles):
 
     # get value
     delimiters = []
+    k = 0
     while D:
-        k = match[D][S].k
+        k = match[D][S].k + k
         delimiters.append(k)
         D = D[1:]
         S = S[k:]
@@ -170,10 +181,11 @@ def get_max_k(D, S):
     :param S:
     :return:
     """
+    WINDOW = 10     # limit the amount of subtitles that can fit to a line of dialog
     max_score = 0
     max_k = None
 
-    for k in range(len(S)):
+    for k in range(min(WINDOW, len(S))):
         s = get_score(D[0], S[:k]) + match[ D[1:] ][ S[k:] ].score
         if s > max_score:
             max_score = s
