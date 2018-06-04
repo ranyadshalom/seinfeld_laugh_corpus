@@ -21,10 +21,10 @@ from collections import defaultdict
 from timeit import default_timer as timer
 import pickle
 import os
+import sys
 
 # TODO: Character name should be closer to when a character starts speaking, not when a previous character finishes speaking.
 # TODO: Remove .srt formatting tags (<i>, <b>, <u>, </i>, </b>, </u>
-# TODO: Dynamic programming
 
 Subtitle = namedtuple('Subtitle', ["txt", "start", "end"])   # text (dialog), start (in seconds), end (in seconds)
 Result = namedtuple('Result', ["k", "score"])   # an object that contains the result of the calculations in the dynamic programming algorithm
@@ -45,30 +45,38 @@ def measure_execution_time(foo):
 
 
 def run(screenplay_path, srt_path, laugh_track_path, output_path):
-    result = merge(screenplay_path, srt_path, laugh_track_path)
+    aligned_subs = merge(screenplay_path, srt_path)
+    laugh_times = parse_laugh_track(laugh_track_path)
 
-    write_to_file(result, output)
+    write_to_file(aligned_subs, laugh_times, output)
 
 
-def write_to_file(result, output):
+def write_to_file(aligned_subs, laugh_times, output):
     with open(output, 'w') as f:
-        for line in result:
+        for i, line in enumerate(aligned_subs):
             if isinstance(line, Subtitle):
-                # f.write("%f\n%s\n%f\n" % (line.start, line.txt, line.end))
                 f.write("%s\n" % (line.txt))
-            elif isinstance(line, float):
-                f.write("**LOL**\n")
+
+                k = 1
+                try:
+                    while not isinstance(aligned_subs[i + k], Subtitle):
+                        k += 1
+                    next_sub_start_time = aligned_subs[i + k].start
+                except IndexError:
+                    next_sub_start_time = sys.float_info.max
+
+                if laugh_times and line.start <= laugh_times[0] <= next_sub_start_time:
+                    f.write("**LOL**\n")
+                    laugh_times = laugh_times[1:]
             else:
                 # character name
                 f.write("# %s" % line[1])
 
 
-def merge(screenplay_path, srt_path, laugh_track_path):
+def merge(screenplay_path, srt_path):
     # read and parse data
     screenplay_parsed = parse_screenplay(screenplay_path)
     subs = parse_subtitles(srt_path)
-    laugh_track = parse_laugh_track(laugh_track_path)
-
     # process data
     dialog_lines = [line[1] for line in screenplay_parsed if line[0]=='dialog']
 
@@ -81,12 +89,10 @@ def merge(screenplay_path, srt_path, laugh_track_path):
     else:
         with open('delimiters.pickle', 'rb') as f:
             delimiters = pickle.load(f)
-    # aligned_subs = align_subtitles_with_screenplay(subs, screenplay_parsed)
-    # align the times of laughter with subtitles
-    final_result = aligned_subs + laugh_track
-    final_result.sort(key = sort_key)
 
-    return final_result
+    aligned_subs = align_subtitles_with_screenplay(subs, screenplay_parsed, delimiters)
+
+    return aligned_subs
 
 
 def parse_screenplay(screenplay_path):
@@ -137,16 +143,6 @@ def get_sub_time_in_seconds(sub_time):
     return sub_time.seconds + sub_time.minutes*60 + sub_time.milliseconds*0.001
 
 
-def sort_key(item):
-    if isinstance(item, Subtitle):
-        return item.end
-    elif isinstance(item, float):
-        return item
-    else:
-        # dialog. return its timestamp which is supposed to be its last element.
-        return item[-1]
-
-
 def get_optimal_match(dialog_lines, subtitles):
     """
     A dynamic programming algorithm that returns the optimal screenplay/subtitles match.
@@ -163,11 +159,11 @@ def get_optimal_match(dialog_lines, subtitles):
             match[ D[-i:] ][ S[j:] ] = get_max_k(D[-i:], S[j:])
 
     # get value
-    delimiters = []
+    delimiters = [0]
     k = 0
     while D:
-        k = match[D][S].k + k
-        delimiters.append(k)
+        k = match[D][S].k
+        delimiters.append(k + delimiters[-1])
         D = D[1:]
         S = S[k:]
     return delimiters
@@ -181,7 +177,7 @@ def get_max_k(D, S):
     :param S:
     :return:
     """
-    WINDOW = 10     # limit the amount of subtitles that can fit to a line of dialog
+    WINDOW = 14     # limit the amount of subtitles that can fit to a line of dialog
     max_score = 0
     max_k = None
 
@@ -217,6 +213,15 @@ def get_score(dialog, subs):
 
     return intersection / union
 
+
+def align_subtitles_with_screenplay(subs, screenplay, delimiters):
+    result = []
+    for i,j in zip(delimiters, delimiters[1:]):
+        result.append(screenplay[0])
+        screenplay = screenplay[2:]
+        result.extend(subs[i:j])
+
+    return result
 
 
 if __name__=='__main__':

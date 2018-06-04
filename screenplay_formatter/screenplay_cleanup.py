@@ -22,7 +22,6 @@ scene_headings = ['INT.',
                   '---']
 
 
-
 def run(src, dst):
     with open(src, encoding='utf8') as f:
         screenplay_as_str = f.read()
@@ -67,6 +66,7 @@ def split_word_with_parenthesis(word):
             # right delimiter is inside word
             return word.split(l)[0] + l, word.split(l)[1]
 
+
 def process(words_generator):
     result = ""
     word = next(words_generator)
@@ -86,11 +86,15 @@ def process(words_generator):
             elif is_parenthesis(word):
                 result += '\n' + process_parenthesis(word, words_generator)
                 word = next(words_generator)
+            elif is_comment(word):
+                result += '\n' + process_scene_heading(word, words_generator)
+                word = next(words_generator)
             else:
                 result += word + ' '
                 word = next(words_generator)
         except StopIteration:
             return result
+
 
 def process_character_block(word, word_generator):
     block = process_character_name(word, word_generator)
@@ -157,12 +161,17 @@ def process_scene_heading(word, word_generator):
 def is_character(word):
     return (word.isupper() and len(word) > 2 and word[:-1].isalpha())
 
+
 def is_scene_heading(word):
     return any(word.startswith(s) for s in scene_headings)
+
 
 def is_parenthesis(word):
     return word[0] in delimiters_dict.keys()
 
+
+def is_comment(word):
+    return word[0] in ['%']
 
 
 def reformat_screenplay(screenplay_as_str):
