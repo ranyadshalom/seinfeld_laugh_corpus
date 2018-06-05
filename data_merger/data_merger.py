@@ -23,7 +23,6 @@ import pickle
 import os
 import sys
 
-# TODO: Character name should be closer to when a character starts speaking, not when a previous character finishes speaking.
 # TODO: Remove .srt formatting tags (<i>, <b>, <u>, </i>, </b>, </u>
 
 Subtitle = namedtuple('Subtitle', ["txt", "start", "end"])   # text (dialog), start (in seconds), end (in seconds)
@@ -76,9 +75,11 @@ def write_to_file(aligned_subs, laugh_times, output):
 def merge(screenplay_path, srt_path):
     # read and parse data
     screenplay_parsed = parse_screenplay(screenplay_path)
+    screenplay_parsed = remove_characters_without_dialog(screenplay_parsed)
     subs = parse_subtitles(srt_path)
     # process data
     dialog_lines = [line[1] for line in screenplay_parsed if line[0]=='dialog']
+    delimiters = get_optimal_match(dialog_lines, subs)
 
     # TODO remove the pickle area. it's for debugging
     # (the idea is to save the processing time to debug the rest of the code)
@@ -215,6 +216,7 @@ def get_score(dialog, subs):
 
 
 def align_subtitles_with_screenplay(subs, screenplay, delimiters):
+
     result = []
     for i,j in zip(delimiters, delimiters[1:]):
         result.append(screenplay[0])
@@ -222,6 +224,23 @@ def align_subtitles_with_screenplay(subs, screenplay, delimiters):
         result.extend(subs[i:j])
 
     return result
+
+
+def remove_characters_without_dialog(screenplay):
+    """
+    remove double 'character' instances from screenplay (happens when a character
+    does something, but doesn't actually speak, e.g. GEORGE: (gasps)
+    """
+    redundant_indices_in_screenplay = []
+    for i in range(len(screenplay)-1):
+        if screenplay[i][0] == 'character_name' and screenplay[i+1][0] == 'character_name':
+            redundant_indices_in_screenplay.append(i)
+
+    redundant_indices_in_screenplay.reverse()
+    for i in redundant_indices_in_screenplay:
+        del screenplay[i]
+
+    return screenplay
 
 
 if __name__=='__main__':
@@ -233,5 +252,8 @@ if __name__=='__main__':
     args = parser.parse_args()
     screenplay, srt, laugh_track, output = args.screenplay, args.srt, args.laugh_track, args.output
 
-    result = run(screenplay, srt, laugh_track, output)
+    if os.path.exists(output):
+        print("'%s' already exists!\n" % output)
+    else:
+        result = run(screenplay, srt, laugh_track, output)
 

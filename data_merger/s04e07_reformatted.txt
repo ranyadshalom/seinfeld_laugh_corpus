@@ -1,4 +1,5 @@
-JERRY: Have you ever called someone up, and you're disappointed when they answer the phone? You wanted the machine. You know, and you're always kind of thrown off, 
+JERRY
+Have you ever called someone up, and you're disappointed when they answer the phone? You wanted the machine. You know, and you're always kind of thrown off, 
 # (left hand up to side of face, pretending its a receiver)
 you go "Oh, I eh, I - I didn't know you were there, I ah - just wanted to leave a message saying, sorry I missed you." 
 
@@ -174,8 +175,8 @@ Westchester? Isn't that a private club?
 KRAMER
 Oh, that's right buddy. It's private. It's very private. But I met the pro at the golf shop up on 49th St. -- I gave him one of these Cubans and he invites me up to play a free round ... then he says anytime I lay one of these babies on him it's going to be the same deal. Ha ha. Idn't that beautiful. 
 
-JERRY
-and GEORGE: Ye, hu, um Ye, 
+JERRYandGEORGE
+Ye, hu, um Ye, 
 
 KRAMER
 Man, I'm going to be hitting the links all weekend. Ffoooo 
@@ -493,7 +494,7 @@ GEORGE
 All right there you go. It's a '47 cabin all right. So, we'll see you tomorrow. 
 
 JERRY
-OK. 
+ok. 
 
 
 
@@ -502,8 +503,8 @@ OK.
 KRAMER
 Well, 
 
-GEORGE
-and JERRY: Very nice, very nice, nice. 
+GEORGEandJERRY
+Very nice, very nice, nice. 
 
 
 
@@ -512,8 +513,8 @@ and JERRY: Very nice, very nice, nice.
 KRAMER
 Well, I'm off to the links. 
 
-GEORGE
-and JERRY: Yeah. 
+GEORGEandJERRY
+Yeah. 
 
 KRAMER
 Listen, I want to thank you for the invite up state. I'm sorry I can't make it. 
@@ -887,8 +888,7 @@ Huh
 
 # (quietly)
 
-GEORGE
-and SUSAN: 
+GEORGEandSUSAN 
 
 # (nod)
 
@@ -1257,7 +1257,9 @@ MAN #2
 He got in a fight with some guy. 
 
 
-Guy1: What kind of person would hurt the Bubble Boy? 
+GUY #1 
+What kind of person would hurt the Bubble Boy? 
+
 MAN #2
 Some little bald guy from the city. 
 
