@@ -64,7 +64,8 @@ def write_to_file(aligned_subs, laugh_times, output):
                 except IndexError:
                     next_sub_start_time = sys.float_info.max
 
-                if laugh_times and line.start <= laugh_times[0] <= next_sub_start_time:
+                while laugh_times and line.start+0.5 <= laugh_times[0] <= next_sub_start_time+0.5:
+                    # +0.3 because it takes the audience a moment to understand the joke
                     f.write("**LOL**\n")
                     laugh_times = laugh_times[1:]
             else:
@@ -83,13 +84,13 @@ def merge(screenplay_path, srt_path):
 
     # TODO remove the pickle area. it's for debugging
     # (the idea is to save the processing time to debug the rest of the code)
-    if not os.path.isfile('delimiters.pickle'):
-        delimiters = get_optimal_match(dialog_lines, subs)
-        with open('delimiters.pickle', 'wb') as f:
-            pickle.dump(delimiters, f, pickle.HIGHEST_PROTOCOL)
-    else:
-        with open('delimiters.pickle', 'rb') as f:
-            delimiters = pickle.load(f)
+#    if not os.path.isfile('delimiters.pickle'):
+#        delimiters = get_optimal_match(dialog_lines, subs)
+#        with open('delimiters.pickle', 'wb') as f:
+#            pickle.dump(delimiters, f, pickle.HIGHEST_PROTOCOL)
+#    else:
+#        with open('delimiters.pickle', 'rb') as f:
+#            delimiters = pickle.load(f)
 
     aligned_subs = align_subtitles_with_screenplay(subs, screenplay_parsed, delimiters)
 
@@ -125,7 +126,7 @@ def parse_laugh_track(laugh_track_txt_path):
 
 def parse_subtitles(srt):
     result = []
-    subs = pysrt.open(srt)
+    subs = pysrt.open(srt, encoding='ansi ')
     for sub in subs:
         start, end = get_sub_time_in_seconds(sub.start), get_sub_time_in_seconds(sub.end)
         if '-'==sub.text[0] or '\n-' in sub.text:
