@@ -42,6 +42,7 @@
 # python imports
 import os
 import argparse
+from sklearn import linear_model
 
 # project imports
 from screenplay import Screenplay
@@ -49,6 +50,27 @@ from screenplay import Screenplay
 
 def run(data_folder):
     data = read_data(data_folder)
+
+    test_size = int(len(data) * 0.2)
+    train_set, test_set = data[test_size:], data[:test_size]
+    # TODO the actual sets are the lines + contexts. But this would be wasteful on the memory.
+
+    X = []
+    Y = []
+    # basic code (not yet working):
+    # for screenplay in data:
+    #   for i, line in enumerate(screenplay):
+    #       context = get_context(i, screenplay)
+    #       features = feature_extractor.extract(line, context)
+    #       X.append(features)
+    #       if instanceof(screenplay[i+1], Laugh):
+    #           y.append(1) # 1 means funny
+    #       else:
+    #           y.append(0) # 0 means not funny (MAKE SURE THATS HOW SKLEARN CLASSIFICATION WORKS)
+    #
+
+    classifier = linear_model.LogisticRegression()
+
     pass
 
 
