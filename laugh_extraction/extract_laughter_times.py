@@ -49,7 +49,7 @@ def write_to_file(laughter_times, output):
                seconds = int(timestamp % 60)))
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Extract laughter times (in seconds) in the laugh track")
     parser.add_argument('input', help='a laugh track (.wav, 44khz 16bit)')
     parser.add_argument('output', help="a plain text file with the laughter points")

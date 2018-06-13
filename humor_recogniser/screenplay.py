@@ -12,24 +12,26 @@ class Screenplay:
     def from_file(cls, file_path):
         screenplay = Screenplay()
 
-        lines = f.__iter__()
-        for line in lines:
-            if line[0] == '#':
-                current_character = line.replace('#', '').strip()
-            else:
-                start = float(line)
-                txt = lines.next()
-                if txt == '**LOL**':
-                    screenplay.lines.append(Laugh(time=start))
+        with open(file_path) as f:
+            lines = f.__iter__()
+            for line in lines:
+                if line[0] == '#':
+                    current_character = line.replace('#', '').strip()
                 else:
-                    end = lines.next()
-                    try:
-                        end = float(end)
-                    except ValueError:
-                        txt += ('\n'+end)
-                        end = float(lines.next())
-                    screenplay.lines.append(Line(txt=txt, start=start, end=end, character=current_character))
-
+                    start = float(line)
+                    txt = lines.readline()
+                    if '**LOL**' in txt:
+                        screenplay.lines.append(Laugh(time=start))
+                    else:
+                        end = lines.readline()
+                        try:
+                            end = float(end)
+                        except ValueError:
+                            txt += ('\n'+end)
+                            end = float(lines.readline())
+                        screenplay.lines.append(Line(txt=txt.replace('\n', ' ').strip(),
+                                                     start=start, end=end, character=current_character))
+        return screenplay
 
 
 

@@ -39,22 +39,42 @@
 # 2. Split: 80% train, 20% test.
 # 3. Train model (for each subtitle: a vector of features / produces laughter or not)
 # 4. Test on the test set.
+# python imports
 import os
-from humor_recogniser.screenplay import Screenplay
+import argparse
 
-data = []
+# project imports
+from screenplay import Screenplay
+
+
+def run(data_folder):
+    data = read_data(data_folder)
+    pass
 
 
 def read_data(data_folder):
+    data = []
     files = (f for f in os.listdir(data_folder) if os.path.isfile(data_folder + '/' + f))
+
     for file in files:
         try:
-            screenplay = Screenplay.from_file(file)
+            screenplay = Screenplay.from_file("%s/%s" % (data_folder, file))
             data.append(screenplay)
-        except:
+        except Exception as e:
             print("ERROR reading data file '%s'. Skipped." % file)
+            print("%s" % e)
+    return data
 
 # How should the data be represented in the memory?
 # A laugh could only appear in the data after a subtitle. Thus the decision has to be made
 # after each subtitle.
-#
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="A machine-learning based module that to predict the times in which "
+                                                 "the crowd laughter occurs given a Seinfeld screenplay.")
+    parser.add_argument('data', help='The folder where the training data is located. Training data is .merged '
+                                            'files, created by the data_merger.py module and contain screenplays, '
+                                            'laugh times & dialog times.')
+    args = parser.parse_args()
+    run(args.data)
