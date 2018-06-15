@@ -43,6 +43,7 @@
 import os
 import argparse
 from sklearn import linear_model
+from sklearn.feature_extraction import DictVectorizer
 
 # project imports
 from screenplay import Screenplay
@@ -53,23 +54,38 @@ def run(data_folder):
 
     test_size = int(len(data) * 0.2)
     train_set, test_set = data[test_size:], data[:test_size]
-    # TODO the actual sets are the lines + contexts. But this would be wasteful on the memory.
 
     X = []
     Y = []
     # basic code (not yet working):
-    # for screenplay in data:
-    #   for i, line in enumerate(screenplay):
-    #       context = get_context(i, screenplay)
-    #       features = feature_extractor.extract(line, context)
-    #       X.append(features)
-    #       if instanceof(screenplay[i+1], Laugh):
-    #           y.append(1) # 1 means funny
-    #       else:
-    #           y.append(0) # 0 means not funny (MAKE SURE THATS HOW SKLEARN CLASSIFICATION WORKS)
-    #
+    for screenplay in train_set:
+        for x, y in feature_extractor.yield_features(screenplay):
+            X.append(x)
+            Y.append(y)
+    vec = DictVectorizer()
+    vec.fit_transform(X)
 
     classifier = linear_model.LogisticRegression()
+    classifier.fit(vec, Y)
+
+    # test classifier
+    rights, wrongs = 0, 0
+    for screenplay in test_set:
+        for x, y in feature_extractor.yield_features(screenplay):
+            if classifier.predict(x) == y:
+                rights += 1
+            else:
+                wrongs += 1
+
+    print_statistics(rights, wrongs)
+
+    #   for i, line in enumerate(screenplay):
+    #       context = get_context(i, screenplay)
+    #
+    # test classifier:
+    # for screenplay in test_set:
+    #   for
+
 
     pass
 
@@ -87,7 +103,6 @@ def read_data(data_folder):
             print("%s" % e)
     return data
 
-# How should the data be represented in the memory?
 # A laugh could only appear in the data after a subtitle. Thus the decision has to be made
 # after each subtitle.
 
