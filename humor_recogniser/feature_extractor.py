@@ -1,11 +1,8 @@
 import logging
 import logging.config
 
-from screenplay import Line
+from screenplay import Line, Laugh
 import features
-
-root_logger = logging.getLogger()
-root_logger.setLevel(logging.DEBUG)
 
 
 class FeatureExtractor:
@@ -44,9 +41,10 @@ class FeatureExtractor:
         :return: The features formatted as a python dictionary
         """
         extracted = {}
-        assert line == context[len(context)/2]
+        assert line == context[int(len(context)/2)]
         for feature_name, extraction_func in self.features.items():
             extracted[feature_name] = extraction_func(line, context)
+        return extracted
 
     def yield_features(self, screenplay):
         """
@@ -55,12 +53,13 @@ class FeatureExtractor:
         :return: a tuple (x [features as python dict], y ['funny' or 'not_funny'])
         """
         for i, line in enumerate(screenplay):
-            features = self.extract(line, self.get_context(screenplay, i))
-            if instanceof(screenplay[i+1], Laugh):
-                y = 'funny'
-            else:
-                y = 'not_funny'
-            yield features, y
+            if isinstance(screenplay[i], Line):
+                features = self.extract_features(line, self.get_context(screenplay, i))
+                if isinstance(screenplay[i+1], Laugh):
+                    y = 'funny'
+                else:
+                    y = 'not_funny'
+                yield features, y
 
     def get_context(self, screenplay, i):
         """

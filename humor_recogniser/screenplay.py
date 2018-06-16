@@ -8,6 +8,13 @@ class Screenplay:
     def __init__(self):
         self.lines = []
 
+    def __iter__(self):
+        for line in self.lines:
+            yield line
+
+    def __getitem__(self, item):
+        return self.lines[item]
+
     @classmethod
     def from_file(cls, file_path):
         screenplay = Screenplay()

@@ -32,6 +32,8 @@
 #   A: It's just gonna be left out of the feature vector... it's OK...
 
 
+# A laugh could only appear in the data after a subtitle. Thus the decision has to be made
+# after each subtitle.
 
 # 1. Read data file into memory
 #       Q: How best should I store the data in the memory?
@@ -42,11 +44,19 @@
 # python imports
 import os
 import argparse
+import logging
 from sklearn import linear_model
 from sklearn.feature_extraction import DictVectorizer
 
 # project imports
 from screenplay import Screenplay
+from feature_extractor import FeatureExtractor
+
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+
+feature_extractor = FeatureExtractor()
+vec = DictVectorizer()
 
 
 def run(data_folder):
@@ -55,39 +65,8 @@ def run(data_folder):
     test_size = int(len(data) * 0.2)
     train_set, test_set = data[test_size:], data[:test_size]
 
-    X = []
-    Y = []
-    # basic code (not yet working):
-    for screenplay in train_set:
-        for x, y in feature_extractor.yield_features(screenplay):
-            X.append(x)
-            Y.append(y)
-    vec = DictVectorizer()
-    vec.fit_transform(X)
-
-    classifier = linear_model.LogisticRegression()
-    classifier.fit(vec, Y)
-
-    # test classifier
-    rights, wrongs = 0, 0
-    for screenplay in test_set:
-        for x, y in feature_extractor.yield_features(screenplay):
-            if classifier.predict(x) == y:
-                rights += 1
-            else:
-                wrongs += 1
-
-    print_statistics(rights, wrongs)
-
-    #   for i, line in enumerate(screenplay):
-    #       context = get_context(i, screenplay)
-    #
-    # test classifier:
-    # for screenplay in test_set:
-    #   for
-
-
-    pass
+    classifier = get_classifier(train_set)
+    test_classifier(test_set, classifier)
 
 
 def read_data(data_folder):
@@ -103,8 +82,54 @@ def read_data(data_folder):
             print("%s" % e)
     return data
 
-# A laugh could only appear in the data after a subtitle. Thus the decision has to be made
-# after each subtitle.
+
+def get_classifier(train_set):
+    X, Y = [], []
+    # basic code (not yet working):
+    for screenplay in train_set:
+        for x, y in feature_extractor.yield_features(screenplay):
+            X.append(x)
+            Y.append(y)
+    classifier = linear_model.LogisticRegression()
+    classifier.fit(vec.fit_transform(X).toarray(), Y)
+    return classifier
+
+
+def test_classifier(test_set, classifier):
+    # test classifier
+    stats = {'tp': 0, 'fp': 0, 'tn': 0, 'fn': 0}
+    for screenplay in test_set:
+        for x, y in feature_extractor.yield_features(screenplay):
+            if classifier.predict(vec.fit_transform(x).toarray()) == 'funny':
+                if y == 'funny':
+                    stats['tp'] += 1
+                else:
+                    stats['fp'] += 1
+            else:   # classifier prediction was 'not_funny'
+                if y == 'not_funny':
+                    stats['tn'] += 1
+                else:
+                    stats['fn'] += 1
+
+    print_statistics(stats)
+
+
+def print_statistics(stats):
+    tp, fp, tn, fn = stats['tp'], stats['fp'], stats['tn'], stats['fn']
+    try:
+        precision = tp / (tp+fp)
+    except ZeroDivisionError:
+        precision = 0
+
+    try:
+        recall = tp / (tp+fn)
+    except ZeroDivisionError:
+        recall = 0
+
+    logger.info("Accuracy: %.2f" % ((tn+tp) / (tn+tp+fn+fp)))
+    logger.info("Precision: %.2f" % precision)
+    logger.info("Recall: %.2f" % recall)
+#   logger.info("F1: %.2f" % (2*(precision*recall)/(precision+recall)))
 
 
 if __name__ == '__main__':
