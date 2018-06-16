@@ -1,46 +1,10 @@
-# THIS SECTION CAN BE IGNORED FOR THE WHILE AS IT MAINLY CONSISTS OF NOTES TO SELF, THOUGHTS AND PONDERING.
-# WRITING IT ALL DOWN HELPS ME MAKE DECISIONS AND REACH CONCLUSIONS.
+"""
+A machine-learning based classifier that tries to guess which lines in a Seinfeld script will trigger the audience's
+laughter.
 
-# Before implementation, I'd like to try and plan as much as possible in advance, so that I will not have to
-# realize half way through that what I've done will make it impossible to extract feature X or to give result Y.
+Written by Ran Yad-Shalom
+"""
 
-
-# Text-based feature idea list:
-#
-#   * The character that speaks
-#   * The character that last spoke
-#   * How many sentences ago the last character spoke / how many subtitles ago the last character spoke
-#   * The last sentence (simplified - sentiment score, semantic value [based on word2vec])
-#   * This sentence (simplified)
-#   * Language model (try a bunch of them, and even generate one if needs) value of this sentence.
-#   *
-
-# Time-based feature idea list:
-# NOTE TO SELF: THESE FEATURES ARE NOT BINARY! You've never worked with such features before. Please make sure you're
-#               doing it right, lest they will be utterly meaningless (no joke has the exact same timing data).
-#
-#   * How long it took to say this sentence considering the number of syllables (longer-lingering sentences maye funnier?)
-#   * How much SILENCE do we have before the joke? (this might be a good indicator, but it is not always available).
-#   *
-
-# Possible problems and solutions:
-#   Q: How to deal with a sentence that's spread across 2 subtitles and more?
-#   A: Don't need to. It almost never happens (can count exactly how many times in all my data to demonstrate this point)
-
-#   Q: Not all sentences / dialog lines have timestamps, since sometimes 2 characters' sentences are spread across
-#      one subtitle. How should I deal with that?
-#   A: It's just gonna be left out of the feature vector... it's OK...
-
-
-# A laugh could only appear in the data after a subtitle. Thus the decision has to be made
-# after each subtitle.
-
-# 1. Read data file into memory
-#       Q: How best should I store the data in the memory?
-#       A: Same as it is in the file, just provide a good and intuitive interface to it.
-# 2. Split: 80% train, 20% test.
-# 3. Train model (for each subtitle: a vector of features / produces laughter or not)
-# 4. Test on the test set.
 # python imports
 import os
 import argparse
@@ -85,7 +49,7 @@ def read_data(data_folder):
 
 def get_classifier(train_set):
     X, Y = [], []
-    # basic code (not yet working):
+
     for screenplay in train_set:
         for x, y in feature_extractor.yield_features(screenplay):
             X.append(x)
@@ -100,7 +64,7 @@ def test_classifier(test_set, classifier):
     stats = {'tp': 0, 'fp': 0, 'tn': 0, 'fn': 0}
     for screenplay in test_set:
         for x, y in feature_extractor.yield_features(screenplay):
-            if classifier.predict(vec.fit_transform(x).toarray()) == 'funny':
+            if classifier.predict(vec.transform(x).toarray()) == 'funny':
                 if y == 'funny':
                     stats['tp'] += 1
                 else:
@@ -140,3 +104,36 @@ if __name__ == '__main__':
                                             'laugh times & dialog times.')
     args = parser.parse_args()
     run(args.data)
+
+# THIS SECTION CAN BE IGNORED FOR THE WHILE AS IT MAINLY CONSISTS OF NOTES TO SELF, THOUGHTS AND PONDERING.
+# WRITING IT ALL DOWN HELPS ME MAKE DECISIONS AND REACH CONCLUSIONS.
+
+# Text-based feature idea list:
+#
+#   * The character that speaks
+#   * The character that last spoke
+#   * How many sentences ago the last character spoke / how many subtitles ago the last character spoke
+#   * The last sentence (simplified - sentiment score, semantic value [based on word2vec])
+#   * This sentence (simplified)
+#   * Language model (try a bunch of them, and even generate one if needs) value of this sentence.
+#   *
+
+# Time-based feature idea list:
+# NOTE TO SELF: THESE FEATURES ARE NOT BINARY! You've never worked with such features before. Please make sure you're
+#               doing it right, lest they will be utterly meaningless (no joke has the exact same timing data).
+#
+#   * How long it took to say this sentence considering the number of syllables (longer-lingering sentences maye funnier?)
+#   * How much SILENCE do we have before the joke? (this might be a good indicator, but it is not always available).
+#   *
+
+# Possible problems and solutions:
+#   Q: How to deal with a sentence that's spread across 2 subtitles and more?
+#   A: Don't need to. It almost never happens (can count exactly how many times in all my data to demonstrate this point)
+
+#   Q: Not all sentences / dialog lines have timestamps, since sometimes 2 characters' sentences are spread across
+#      one subtitle. How should I deal with that?
+#   A: It's just gonna be left out of the feature vector... it's OK...
+
+
+# A laugh could only appear in the data after a subtitle. Thus the decision has to be made
+# after each subtitle.
