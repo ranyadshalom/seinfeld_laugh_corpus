@@ -1,8 +1,9 @@
 import logging
 import logging.config
+import types
 
-from screenplay import Line, Laugh
-import features
+from humor_recogniser.screenplay import Line, Laugh
+import humor_recogniser.features as features
 
 
 class FeatureExtractor:
@@ -19,7 +20,7 @@ class FeatureExtractor:
                         /prefixing lines.
         """
         self.context_window = context_window
-        logging.config.fileConfig('feature_extractor_logger.conf')
+        logging.config.fileConfig(__file__.rsplit("\\", 1)[0] + '/feature_extractor_logger.conf')
         logger = logging.getLogger(self.__class__.__name__)
         logger.setLevel(logging.DEBUG)
 
@@ -28,10 +29,9 @@ class FeatureExtractor:
         # TODO and provide switches in the constructor to turn off certain type of features.
         logger.info("The features that I will be extracting:")
         for feature in dir(features):
-            if not feature.startswith('_'):
+            if not feature.startswith('_') and isinstance(getattr(features, feature), types.FunctionType):
                 logger.info(feature)
                 self.features[feature] = getattr(features, feature)
-            pass
 
     def extract_features(self, line, context):
         """

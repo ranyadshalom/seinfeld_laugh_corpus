@@ -13,8 +13,8 @@ from sklearn import linear_model
 from sklearn.feature_extraction import DictVectorizer
 
 # project imports
-from screenplay import Screenplay
-from feature_extractor import FeatureExtractor
+from humor_recogniser.screenplay import Screenplay
+from humor_recogniser.feature_extractor import FeatureExtractor
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
@@ -42,8 +42,7 @@ def read_data(data_folder):
             screenplay = Screenplay.from_file("%s/%s" % (data_folder, file))
             data.append(screenplay)
         except Exception as e:
-            print("ERROR reading data file '%s'. Skipped." % file)
-            print("%s" % e)
+            print("ERROR incompatible data file '%s'. Skipped. (%s)" % (file, e))
     return data
 
 
