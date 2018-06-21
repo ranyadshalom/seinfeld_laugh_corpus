@@ -122,7 +122,11 @@ def parse_subtitles(srt):
         if '-'==sub.text[0] or '\n-' in sub.text:
             # if more than one character is speaking, split subtitle
             splitted = [s for s in re.split('(?:^-)|(?:\n-)',sub.text) if s]
-            sub_a, sub_b = splitted
+            try:
+                sub_a, sub_b = splitted
+            except ValueError:
+                print("ERROR! Problematic subtitle: '%s'. \nPlease remove unnecessary dashes from it and try again.\n" % sub.text)
+                quit()
             between_time = start/2 + end/2
             result.append(Subtitle(txt=sub_a, start= start, end=between_time))
             result.append(Subtitle(txt=sub_b, start=between_time, end=end))

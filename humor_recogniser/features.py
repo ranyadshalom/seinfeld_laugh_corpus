@@ -7,7 +7,8 @@ from math import log
 
 # load data required for the features
 word_probabilities = {}
-with open("data/word_prevalence.txt") as f:
+word_prevalence_path = __file__.rsplit('\\', 1)[0] + "/data/word_prevalence.txt"
+with open(word_prevalence_path) as f:
     for line in f:
         word, prob = line.split()
         word_probabilities[word] = float(prob)
@@ -35,6 +36,14 @@ def word_prevalence(line, context):
                 value += log(word_probabilities['UNK'])
     return value
 
+
+def rarest_word_probability(line, context):
+    words = re.split(r'[\s\,\.\?\!\;\:"]', line.txt.lower())
+    words = [word for word in words if word]
+    line_word_probabilities = [word_probabilities[word] for word in words if word in word_probabilities]
+    if not line_word_probabilities:
+        line_word_probabilities.append(0)
+    return min(line_word_probabilities)
 
 
 #def word_prevalence(line, context):
