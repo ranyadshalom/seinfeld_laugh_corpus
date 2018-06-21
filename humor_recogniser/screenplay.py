@@ -10,6 +10,7 @@ class Screenplay:
     """
     def __init__(self):
         self.lines = []
+        self.filename = 'N/A'
 
     def __iter__(self):
         for line in self.lines:
@@ -21,6 +22,7 @@ class Screenplay:
     @classmethod
     def from_file(cls, file_path):
         screenplay = Screenplay()
+        screenplay.filename = file_path.rsplit('/',1)[-1]
 
         with open(file_path) as f:
             lines = f.__iter__()
