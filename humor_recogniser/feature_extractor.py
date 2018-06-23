@@ -12,7 +12,7 @@ class FeatureExtractor:
     The input is this line, the previous 3 lines and next 3 lines.
     """
 
-    def __init__(self, context_window=5):
+    def __init__(self, context_window=7):
         """
 
         :param line: a Line namedtuple.
@@ -41,9 +41,9 @@ class FeatureExtractor:
         :return: The features formatted as a python dictionary
         """
         extracted = {}
-        assert line == context[int(len(context)/2)]
-        for feature_name, extraction_func in self.features.items():
-            extracted[feature_name] = extraction_func(line, context)
+        for function_name, extraction_func in self.features.items():
+            for feature_name, value in extraction_func(line, context):
+                extracted[feature_name] = value
         return extracted
 
     def yield_features(self, screenplay):
@@ -65,14 +65,14 @@ class FeatureExtractor:
         """
         :param screenplay: a list of Line and Laugh objects.
         :param i: the line's index.
-        :return: A list of before/after lines of the i'th line.
+        :return: A list of the lines that come BEFORE the i'th line.
         """
         context = []
-        for k in range(-self.context_window, self.context_window + 1):
-            try:
-                context.append(screenplay[i+k])
-            except IndexError:
-                context.append(None)
+        k = self.context_window
+        while k >= 0:
+            if isinstance(screenplay[i-k], Line) and i-k > 0:
+                context.append(screenplay[i-k])
+            k -= 1
         return context
 
 
