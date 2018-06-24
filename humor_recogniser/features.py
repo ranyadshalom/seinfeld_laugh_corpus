@@ -5,9 +5,10 @@ They must all receive a line and a context, and return a value.
 import re
 from math import log
 import nltk
+import en_core_web_md
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 
-# load data required for the features
+# load word probabilities
 word_probabilities = {}
 word_prevalence_path = __file__.rsplit('\\', 1)[0] + "/data/word_prevalence.txt"
 with open(word_prevalence_path) as f:
@@ -15,6 +16,8 @@ with open(word_prevalence_path) as f:
         word, prob = line.split()
         word_probabilities[word] = float(prob)
 
+# load spacy model
+nlp = en_core_web_md.load()
 
 def _extract_full_correspondence_from_context(line, context):
     # TODO maybe the context should only be BACKWARDS!
@@ -27,8 +30,8 @@ def _extract_full_correspondence_from_context(line, context):
                 seperators.append(i+1)
 
         this_dialog_line = context[seperators[-1]:]
-        previous_dialog_line = context[seperators[-2]:seperators[-1]]
         this_dialog_line = " ".join(l.txt for l in this_dialog_line)
+        previous_dialog_line = context[seperators[-2]:seperators[-1]]
         previous_dialog_line = " ".join(l.txt for l in previous_dialog_line)
     except IndexError:
          pass
@@ -67,11 +70,25 @@ def rarest_word_probability(line, context):
     return [('rarest_word_probability', min(line_word_probabilities))]
 
 
-def vader_sentiment_compound_value(line, context):
-    # TODO extract past dialog, this dialog. this is a function that needs reusability!
+def sentiment_and_semantical_differences(line, context):
+    # sentiments
     prev_dialog, this_dialog = _extract_full_correspondence_from_context(line, context)
     sid = SentimentIntensityAnalyzer()
-    return [('sentiment', 0)]
+    prev_dialog_ss = sid.polarity_scores(prev_dialog)
+    this_dialog_ss = sid.polarity_scores(this_dialog)
+
+    # semantic similarity
+    doc1, doc2 = nlp(this_dialog), nlp(prev_dialog)
+    return [('vader_sent_prev_dialog_neg', prev_dialog_ss['neg']),
+            ('vader_sent_prev_dialog_neu', prev_dialog_ss['neu']),
+            ('vader_sent_prev_dialog_pos', prev_dialog_ss['pos']),
+            ('vader_sent_prev_dialog_comp', prev_dialog_ss['compound']),
+            ('vader_sent_dialog_neg', this_dialog_ss['neg']),
+            ('vader_sent_dialog_neu', this_dialog_ss['neu']),
+            ('vader_sent_dialog_pos', this_dialog_ss['pos']),
+            ('vader_sent_dialog_comp', this_dialog_ss['compound']),
+            ('semantical_similarity', doc1.similarity(doc2))
+            ]
 
 
 

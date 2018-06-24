@@ -89,9 +89,9 @@ def print_statistics(stats):
     except ZeroDivisionError:
         recall = 0
 
-    logger.info("Accuracy: %.2f" % ((tn+tp) / (tn+tp+fn+fp)))
-    logger.info("Precision: %.2f" % precision)
-    logger.info("Recall: %.2f" % recall)
+    logger.info("Accuracy: %.4f" % ((tn+tp) / (tn+tp+fn+fp)))
+    logger.info("Precision: %.4f" % precision)
+    logger.info("Recall: %.4f" % recall)
 #   logger.info("F1: %.2f" % (2*(precision*recall)/(precision+recall)))
 
 
