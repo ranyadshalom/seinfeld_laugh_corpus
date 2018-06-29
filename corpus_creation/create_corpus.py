@@ -7,13 +7,17 @@ import os
 import subprocess
 import ntpath
 
+FFMPEG_PATH = os.path.join("external_tools", "ffmpeg", "bin")
+SOX_PATH = os.path.join("external_tools", "sox")
+
 
 def run(episodes_path, output_path):
     for dirpath, _, filenames in os.walk(episodes_path):
         for filename in filenames:
-            file_path = os.path.join(dirpath, filename)
-            processor =Processor(file_path, output_path)
-            processor.process()
+            if filename.endswith(".mkv"):
+                file_path = os.path.join(dirpath, filename)
+                processor =Processor(file_path, output_path)
+                processor.process()
 
 
 class Processor:
@@ -30,6 +34,7 @@ class Processor:
         try:
             print("Processing '%s'..." % filename)
             self._extract_audio()
+            self._extract_laugh_track()
             self._extract_laughter_times()
             self.files['laughter_times'] = self._extract_laughter_times(audio_filepath)
             self.files['subtitles'] = get_subtitles(filepath, audio_filepath)
@@ -51,22 +56,36 @@ class Processor:
             print("Cleaning up...")
             self._cleanup()
 
+    def _extract_audio(self):
+        # audio file name is the same as the video's but with .wav extension
+        self.files['audio'] = self.filepath.rsplit(".", 1)[0] + '.wav'
+        try:
+            # ffmpeg will extract the audio in uncompressed PCM format.
+            exit_code = subprocess.call([os.path.join(FFMPEG_PATH, 'ffmpeg.exe'), "-i", self.filepath,
+                                         self.files['audio']])
+            if exit_code != 0:
+                raise Exception("ffmpeg exit code: %d. Your video file may be corrupted." % exit_code)
+        except Exception as e:
+            raise Exception("Make sure you have a working version of ffmpeg in the external_tools folder.\n%s" % str(e))
+
+    def _extract_laugh_track(self):
+        self.files['laugh_track'] = self.filepath.rsplit(".", 1)[0] + '_laugh.wav'
+
+        try:
+            exit_code = subprocess.call([os.path.join(SOX_PATH, 'sox.exe'), self.files['audio'],
+                                         self.files['laugh_track'], "oops"])
+            if exit_code != 0:
+                raise Exception("sox exit code: %d." % exit_code)
+        except Exception as e:
+            raise Exception("Make sure you have a working version of sox in the external_tools folder.\n%s" % str(e))
+
+
+        # you need to have ffmpeg in 'external_tools' folder. Please download it from ffmpeg.org and try again.
+
     def _cleanup(self):
         for filename in self.files.values():
             os.remove(filename)
             print("Removed '%s'" % filename)
-
-    def _extract_audio(self):
-        # audio file name is the same as the video's but with .wav extension
-        self.files['audio'] = self.filepath.rsplit(".", 1)[0] + '.wav'
-        # ffmpeg will extract the audio in uncompressed PCM format.
-        try:
-            result = subprocess.call(["external_tools/ffmpeg/bin/ffmpeg.exe", "-i", self.filepath, self.files['audio']])
-        except Exception as e:
-            raise Exception("Please make sure you have a working version of ffmpeg in the external_tools folder.\n%s" % str(e))
-
-        # you need to have ffmpeg in 'external_tools' folder. Please download it from ffmpeg.org and try again.
-
 
 
 
