@@ -43,6 +43,7 @@ def verify_result(laughter_times):
     if len(laughter_times) < minimum_laughs:
         raise Exception("It seems like audience recording is not in Stereo (Only %d laughs were extracted)."
                         % len(laughter_times))
+    # TODO verify spillage (the average silence levels? First see if this is even a problem.)
 
 
 def write_to_file(laughter_times, output):
