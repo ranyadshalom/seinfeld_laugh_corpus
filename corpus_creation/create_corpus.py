@@ -2,10 +2,15 @@
 A module that creates the annotated Seinfeld corpus from scratch, given the episodes in .mkv format.
 """
 
+# python imports
 import argparse
 import os
 import subprocess
 import ntpath
+
+# internal imports
+from corpus_creation.laugh_extraction import extract_laughter_times
+
 
 FFMPEG_PATH = os.path.join("external_tools", "ffmpeg", "bin")
 SOX_PATH = os.path.join("external_tools", "sox")
@@ -40,8 +45,8 @@ class Processor:
             self.files['subtitles'] = get_subtitles(filepath, audio_filepath)
             self.files['screenplay'] = get_screenplay(filename)
             merge(self.files['screenplay'], self.files['subtitles'], self.files['laughter_times'])
-        except AudienceRecordingNotInStereoException:
-            print("ERROR for '%s': Audience recording is not in Stereo." % filename)
+        except LaughExtractionException as e:
+            print("ERROR for '%s': %s" % (filename, e))
         except SubtitlesNotInSyncException:
             print("ERROR for '%s': Subtitles not in sync." % filename)
         except ScreenplayParseException:
@@ -72,15 +77,25 @@ class Processor:
         self.files['laugh_track'] = self.filepath.rsplit(".", 1)[0] + '_laugh.wav'
 
         try:
-            exit_code = subprocess.call([os.path.join(SOX_PATH, 'sox.exe'), self.files['audio'],
+            exit_code = subprocess.call([os.path.join(SOX_PATH, 'sox.exe'), '--norm', self.files['audio'],
                                          self.files['laugh_track'], "oops"])
             if exit_code != 0:
                 raise Exception("sox exit code: %d." % exit_code)
         except Exception as e:
             raise Exception("Make sure you have a working version of sox in the external_tools folder.\n%s" % str(e))
 
+    def _extract_laughter_times(self):
+        self.files['laughter_times'] = self.files['laugh_track'].rsplit(".", 1)[0] + '.laugh'
+        try:
+            extract_laughter_times.run(input=self.files['laugh_track'], output=self.files['laughter_times'])
+        except Exception as e:
+            del self.files['laughter_times']
+            raise LaughExtractionException(str(e))
 
-        # you need to have ffmpeg in 'external_tools' folder. Please download it from ffmpeg.org and try again.
+        # verify laughter times were indeed extracted
+        # TODO case where there is spillage of audio from the episode to audience mics.
+
+
 
     def _cleanup(self):
         for filename in self.files.values():
@@ -106,7 +121,7 @@ class Processor:
         #       merge laughter_times, screenplay, subtitles
 
 
-class AudienceRecordingNotInStereoException(Exception):
+class LaughExtractionException(Exception):
     pass
 
 

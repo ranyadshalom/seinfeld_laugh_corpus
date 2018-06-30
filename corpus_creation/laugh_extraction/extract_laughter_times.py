@@ -4,19 +4,19 @@ import argparse
 from scipy.io.wavfile import read
 
 silence_threshold, trigger_threshold = 2, 150
-detection_interval = 0.05                          # in seconds
-
-
+detection_interval = 0.05                       # in seconds
+minimum_laughs = 50                             # if extracted less than this, something is wrong.
 
 def run(input, output):
     samples_per_second, data = read(input)
     focus_size = int(detection_interval * samples_per_second)
 
-    laughter_times = get_laughter_times(data, focus_size)
+    laughter_times = get_laughter_times(data, focus_size, samples_per_second)
+    verify_result(laughter_times)
     write_to_file(laughter_times, output)
 
 
-def get_laughter_times(data, focus_size):
+def get_laughter_times(data, focus_size, samples_per_second):
     """
     :return: an array of the laugh timestamps in seconds.
     """
@@ -29,7 +29,7 @@ def get_laughter_times(data, focus_size):
         if value > trigger_threshold and before_silence:
             #   if the signal is loud in the next 10 samples, this is a laughter.
             if all(((abs(data[j][0]) > trigger_threshold) for j in range(i,i + focus_size*10, focus_size))):
-                laughter_times.append(i / 44100)
+                laughter_times.append(i / samples_per_second)
                 i += (focus_size * 10)
                 before_silence = False
         elif value < silence_threshold:
@@ -37,6 +37,12 @@ def get_laughter_times(data, focus_size):
         i += focus_size
 
     return laughter_times
+
+
+def verify_result(laughter_times):
+    if len(laughter_times) < minimum_laughs:
+        raise Exception("It seems like audience recording is not in Stereo (Only %d laughs were extracted)."
+                        % len(laughter_times))
 
 
 def write_to_file(laughter_times, output):
