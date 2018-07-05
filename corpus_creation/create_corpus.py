@@ -10,6 +10,7 @@ import ntpath
 
 # internal imports
 from corpus_creation.laugh_extraction import extract_laughter_times
+from corpus_creation.screenplay_downloader import screenplay_downloader
 
 FFMPEG_PATH = os.path.join("external_tools", "ffmpeg", "bin")
 SOX_PATH = os.path.join("external_tools", "sox")
@@ -41,8 +42,7 @@ class Processor:
             self._extract_laugh_track()
             self._extract_laughter_times()
             self._get_subtitles()
-            self.files['subtitles'] = get_subtitles(filepath, audio_filepath)
-            self.files['screenplay'] = get_screenplay(filename)
+            self._get_screenplay()
             merge(self.files['screenplay'], self.files['subtitles'], self.files['laughter_times'])
         except LaughExtractionException as e:
             print("ERROR for '%s': %s" % (self.filename, e))
@@ -103,6 +103,13 @@ class Processor:
                                 "that the .mkv file contains text subtitles and not bitmap subtitles." % exit_code)
         except Exception as e:
             raise Exception("Make sure you have a working version of ffmpeg in the external_tools folder.\n%s" % str(e))
+
+    def _get_screenplay(self):
+        self.files['screenplay'] = self.filepath.rsplit(".", 1)[0] + '.screenplay'
+        try:
+            fetch_screenplay_from_internet(self.files['screenplay'])
+        except Exception as e:
+            raise Exception("Error getting screenplay: %s" % str(e))
 
 
 
