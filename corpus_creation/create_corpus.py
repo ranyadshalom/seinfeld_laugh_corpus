@@ -43,6 +43,7 @@ class Processor:
             self._extract_laughter_times()
             self._get_subtitles()
             self._get_screenplay()
+            self._format_screemplay()
             merge(self.files['screenplay'], self.files['subtitles'], self.files['laughter_times'])
         except LaughExtractionException as e:
             print("ERROR for '%s': %s" % (self.filename, e))
@@ -61,6 +62,7 @@ class Processor:
             self._cleanup()
 
     def _extract_audio(self):
+        print("Extracting audio...")
         # audio file name is the same as the video's but with .wav extension
         self.files['audio'] = self.filepath.rsplit(".", 1)[0] + '.wav'
         try:
@@ -70,9 +72,11 @@ class Processor:
             if exit_code != 0:
                 raise Exception("ffmpeg exit code: %d. Your video file may be corrupted." % exit_code)
         except Exception as e:
+            del files['audio']
             raise Exception("Make sure you have a working version of ffmpeg in the external_tools folder.\n%s" % str(e))
 
     def _extract_laugh_track(self):
+        print("Extracting laugh track...")
         self.files['laugh_track'] = self.filepath.rsplit(".", 1)[0] + '_laugh.wav'
 
         try:
@@ -81,9 +85,11 @@ class Processor:
             if exit_code != 0:
                 raise Exception("sox exit code: %d." % exit_code)
         except Exception as e:
+            del files['laugh_track']
             raise Exception("Make sure you have a working version of sox in the external_tools folder.\n%s" % str(e))
 
     def _extract_laughter_times(self):
+        print("Extracting laughter times...")
         self.files['laughter_times'] = self.files['laugh_track'].rsplit(".", 1)[0] + '.laugh'
         try:
             extract_laughter_times.run(input=self.files['laugh_track'], output=self.files['laughter_times'])
@@ -92,6 +98,7 @@ class Processor:
             raise LaughExtractionException(str(e))
 
     def _get_subtitles(self):
+        print("Getting subtitles...")
         # audio file name is the same as the video's but with .wav extension
         self.files['subtitles'] = self.filepath.rsplit(".", 1)[0] + '.srt'
         try:
@@ -102,13 +109,16 @@ class Processor:
                 raise Exception("ffmpeg exit code: %d. Subtitles could not be extracted. Please make sure"
                                 "that the .mkv file contains text subtitles and not bitmap subtitles." % exit_code)
         except Exception as e:
+            del files['subtitle']
             raise Exception("Make sure you have a working version of ffmpeg in the external_tools folder.\n%s" % str(e))
 
     def _get_screenplay(self):
+        print("Getting screenplay...")
         self.files['screenplay'] = self.filepath.rsplit(".", 1)[0] + '.screenplay'
         try:
-            fetch_screenplay_from_internet(self.files['screenplay'])
+            screenplay_downloader.run(input_filename=self.filename, output_filename=self.files['screenplay'])
         except Exception as e:
+            del self.files['screenplay']
             raise Exception("Error getting screenplay: %s" % str(e))
 
 
