@@ -33,17 +33,25 @@ def parse_input_filename(input_filename):
 def download_screenplay(season_num, episode_num, is_double_episode):
     screenplay_url = get_screenplay_url(season_num, episode_num)
 
-    r = requests.get(screenplay_url)
-    if r.status_code != 200:
-        # TODO retry...
-        raise requests.HTTPError("Status code isn't 200")
-    else:
-        # get text
-        soup = BeautifulSoup(r.content, 'html.parser')
-        s = soup.find("td", class_="spacer2")
-        screenplay_txt = s.get_text()
-        # TODO clean up txt for formatting
-        result = screenplay_txt
+    retry_num = 0
+    while True:
+        r = requests.get(screenplay_url)
+        if r.status_code == 200:
+            break
+        else:
+            if is_double_episode:
+                screenplay_url = get_screenplay_url_double_episode(season_num, episode_num)
+                is_double_episode = False  # Some episodes are split in the website, but not in the DVD, and vice versa.
+            if retry_num > 3:
+                raise requests.HTTPError("Status code isn't 200")
+            retry_num += 1
+
+    # get text
+    soup = BeautifulSoup(r.content, 'html.parser')
+    s = soup.find("td", class_="spacer2")
+    screenplay_txt = s.get_text()
+    # TODO clean up txt for formatting
+    result = screenplay_txt
 
     if is_double_episode:
         return result + '\n' + download_screenplay(season_num, episode_num + 1, False)
@@ -54,6 +62,11 @@ def download_screenplay(season_num, episode_num, is_double_episode):
 def get_screenplay_url(season_num, episode_num):
     page_number = episodes_per_season_commulative[season_num - 1] + episode_num
     return SEINOLOGY_SCRIPTS_URL + "/script-%02d.shtml" % page_number
+
+
+def get_screenplay_url_double_episode(season_num, episode_num):
+    page_number = episodes_per_season_commulative[season_num - 1] + episode_num
+    return SEINOLOGY_SCRIPTS_URL + ("/script-%02dand%02d.shtml" % (page_number, page_number+1))
 
 
 def cleanup(screenplay_txt):

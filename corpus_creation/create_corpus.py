@@ -43,6 +43,7 @@ class Processor:
             self._extract_laughter_times()
             self._get_subtitles()
             self._get_screenplay()
+            # TODO if screenplay of subtitles are less than a threshold of lenght, discard it (To block episodes like The Clip Show and other meaningless data)
             self._format_screemplay()
             merge(self.files['screenplay'], self.files['subtitles'], self.files['laughter_times'])
         except LaughExtractionException as e:
