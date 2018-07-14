@@ -91,15 +91,18 @@ def parse_screenplay(screenplay_path):
     result = []
     with open(screenplay_path, encoding='utf8', errors='ignore') as f:
         for line in f:
-            if line[0] == '#' or line == '\n' or line[0] == "*":
-                pass    # a comment, a new line or a new scene...
-            elif line.isupper():
-                result.append(['character_name', line]) # a character's name
-            else:
-                if result[-1][0] == 'dialog':
-                    result[-1][1] += line
+            try:
+                if line[0] == '#' or line == '\n' or line[0] == "*":
+                    pass    # a comment, a new line or a new scene...
+                elif line.isupper():
+                    result.append(['character_name', line]) # a character's name
                 else:
-                    result.append(['dialog', line])
+                    if result[-1][0] == 'dialog':
+                        result[-1][1] += line
+                    else:
+                        result.append(['dialog', line])
+            except IndexError:
+                print("Warning: dropped line in the screenplay: '%s'" % line)
     return result
 
 
@@ -117,16 +120,17 @@ def parse_laugh_track(laugh_track_txt_path):
 def parse_subtitles(srt):
     result = []
     subs = pysrt.open(srt, encoding='ansi ', error_handling='ignore')
-    for sub in subs:
+    for i, sub in enumerate(subs):
+        if i and sub.text == subs[i-1].text:
+            continue    # double subtitle
         start, end = get_sub_time_in_seconds(sub.start), get_sub_time_in_seconds(sub.end)
         if '-'==sub.text[0] or '\n-' in sub.text:
             # if more than one character is speaking, split subtitle
             splitted = [s for s in re.split('(?:^-)|(?:\n-)',sub.text) if s]
-            try:
-                sub_a, sub_b = splitted
-            except ValueError:
-                print("ERROR! Problematic subtitle: '%s'. \nPlease remove unnecessary dashes from it and try again.\n" % sub.text)
-                quit()
+            if len(splitted) > 2:
+                print("WARNING: problematic subtitle '%s'." % sub.text)
+                splitted = splitted[:2]
+            sub_a, sub_b = splitted
             between_time = start/2 + end/2
             result.append(Subtitle(txt=sub_a, start= start, end=between_time))
             result.append(Subtitle(txt=sub_b, start=between_time, end=end))
