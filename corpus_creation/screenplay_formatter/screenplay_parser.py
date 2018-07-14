@@ -23,13 +23,13 @@ scene_headings = ['INT.',
 
 
 def run(src, dst):
-    with open(src, encoding='utf8') as f:
+    with open(src, encoding='utf8', errors='ignore') as f:
         screenplay_as_str = f.read()
 
     result = reformat_screenplay(screenplay_as_str)
     print("Success! Writing to file '%s'..." % dst)
 
-    with open(dst, 'w', encoding='utf8') as f:
+    with open(dst, 'w', encoding='utf8', errors='ignore') as f:
         f.write(result)
 
 
@@ -78,7 +78,7 @@ def process(words_generator):
                 if is_character(word):
                     # character can only appear after '\n'
                     block, word = process_character_block(word, words_generator)
-                    result = result[:-1] +  block + '\n'
+                    result = result +  block + '\n'
             elif is_scene_heading(word):
                 result = result[:-1] + process_scene_heading(word, words_generator)
                 result += "\n** NEW SCENE **"
@@ -159,7 +159,7 @@ def process_scene_heading(word, word_generator):
 
 
 def is_character(word):
-    return (word.isupper() and len(word) > 2 and word[:-1].isalpha())
+    return word.isupper() and len(word) > 2 and word[:-1].replace(".", "").isalpha()
 
 
 def is_scene_heading(word):

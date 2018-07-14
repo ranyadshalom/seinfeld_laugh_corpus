@@ -5,16 +5,22 @@ from bs4 import BeautifulSoup
 import requests
 import re
 
+MIN_LENGTH = 13000  # if the screenplay has less characters, something is probably wrong.
 SEINOLOGY_SCRIPTS_URL = "http://www.seinology.com/scripts/"
 EPISODES_PER_SEASON = [5, 12, 23, 24, 22, 24, 24, 22, 24]
 episodes_per_season_commulative = [sum(EPISODES_PER_SEASON[:i]) for i in range(len(EPISODES_PER_SEASON))]
 
 
 def run(input_filename, output_filename):
+    result = ""
     season_num, episode_num, is_double_episode = parse_input_filename(input_filename)
-    screenplay_txt = download_screenplay(season_num, episode_num, is_double_episode)
-    screenplay_txt = cleanup(screenplay_txt)
-    write_to_file(screenplay_txt, output_filename)
+    screenplay_txts = download_screenplay(season_num, episode_num, is_double_episode)
+    for screenplay_txt in screenplay_txts:
+        if len(screenplay_txt) < MIN_LENGTH:
+            raise Exception("Something seems of with the screenplay. It's too short. Please check this manually.")
+        screenplay_txt = cleanup(screenplay_txt)
+        result += screenplay_txt + '\n'
+    write_to_file(result, output_filename)
 
 
 def parse_input_filename(input_filename):
@@ -54,9 +60,9 @@ def download_screenplay(season_num, episode_num, is_double_episode):
     result = screenplay_txt
 
     if is_double_episode:
-        return result + '\n' + download_screenplay(season_num, episode_num + 1, False)
+        return [result, download_screenplay(season_num, episode_num + 1, False)[0]]
     else:
-        return result
+        return [result]
 
 
 def get_screenplay_url(season_num, episode_num):
@@ -76,10 +82,23 @@ def cleanup(screenplay_txt):
     # split lines
     lines = re.split(r"[\n\r\t]+", screenplay_txt)
     lines = [l for l in lines if l]
+    # capitalize all character names (in case script has characters like 'Mr. VISAKI')
+    lines = capitalize_all_character_names(lines)
+    # cut out irrelevant part
     upper_delimiter = [delim for delim in lines if "===" in delim]
     upper_delimiter_i = lines.index(upper_delimiter[0]) + 1
     lower_delimiter_i = len(lines)-1 if "end" in lines[-1].lower() else len(lines)
     return "\n".join(lines[upper_delimiter_i:lower_delimiter_i])
+
+
+def capitalize_all_character_names(lines):
+    result = []
+    for line in lines:
+        if ":" in line[:16]:
+            result.append(line.split(":")[0].upper().replace(" ", "") + ":" + ":".join(line.split(":")[1:]))
+        else:
+            result.append(line)
+    return result
 
 
 def write_to_file(screenplay_txt, output):

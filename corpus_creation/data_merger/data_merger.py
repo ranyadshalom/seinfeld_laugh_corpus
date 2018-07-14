@@ -91,8 +91,8 @@ def parse_screenplay(screenplay_path):
     result = []
     with open(screenplay_path, encoding='utf8') as f:
         for line in f:
-            if line[0] == '#' or line=='\n':
-                pass    # a comment, a new line...
+            if line[0] == '#' or line == '\n' or line[0] == "*":
+                pass    # a comment, a new line or a new scene...
             elif line.isupper():
                 result.append(['character_name', line]) # a character's name
             else:

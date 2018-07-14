@@ -11,6 +11,7 @@ import ntpath
 # internal imports
 from corpus_creation.laugh_extraction import extract_laughter_times
 from corpus_creation.screenplay_downloader import screenplay_downloader
+from corpus_creation.screenplay_formatter import screenplay_parser
 
 FFMPEG_PATH = os.path.join("external_tools", "ffmpeg", "bin")
 SOX_PATH = os.path.join("external_tools", "sox")
@@ -44,7 +45,7 @@ class Processor:
             self._get_subtitles()
             self._get_screenplay()
             # TODO if screenplay of subtitles are less than a threshold of lenght, discard it (To block episodes like The Clip Show and other meaningless data)
-            self._format_screemplay()
+            self._format_screenplay()
             merge(self.files['screenplay'], self.files['subtitles'], self.files['laughter_times'])
         except LaughExtractionException as e:
             print("ERROR for '%s': %s" % (self.filename, e))
@@ -121,6 +122,16 @@ class Processor:
         except Exception as e:
             del self.files['screenplay']
             raise Exception("Error getting screenplay: %s" % str(e))
+
+    def _format_screenplay(self):
+        print("Formatting & parsing screenplay...")
+        self.files['formatted_screenplay'] = self.filepath.rsplit(".", 1)[0] + '.formatted'
+        try:
+            screenplay_parser.run(self.files['screenplay'], self.files['formatted_screenplay'])
+        except Exception as e:
+            del self.files['formatted_screenplay']
+            raise Exception("Error formatting and parsing screenplay: %s" % str(e))
+
 
 
 
