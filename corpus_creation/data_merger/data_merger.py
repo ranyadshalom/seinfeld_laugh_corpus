@@ -89,7 +89,7 @@ def parse_screenplay(screenplay_path):
              [('character_name', 'JERRY'), ('dialog', 'bla bla bla'), ...]
     """
     result = []
-    with open(screenplay_path, encoding='utf8') as f:
+    with open(screenplay_path, encoding='utf8', errors='ignore') as f:
         for line in f:
             if line[0] == '#' or line == '\n' or line[0] == "*":
                 pass    # a comment, a new line or a new scene...
@@ -116,7 +116,7 @@ def parse_laugh_track(laugh_track_txt_path):
 
 def parse_subtitles(srt):
     result = []
-    subs = pysrt.open(srt, encoding='ansi ')
+    subs = pysrt.open(srt, encoding='ansi ', error_handling='ignore')
     for sub in subs:
         start, end = get_sub_time_in_seconds(sub.start), get_sub_time_in_seconds(sub.end)
         if '-'==sub.text[0] or '\n-' in sub.text:
