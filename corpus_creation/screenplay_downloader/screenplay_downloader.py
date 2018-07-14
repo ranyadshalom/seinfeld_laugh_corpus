@@ -95,7 +95,7 @@ def capitalize_all_character_names(lines):
     result = []
     for line in lines:
         if ":" in line[:16]:
-            result.append(line.split(":")[0].upper().replace(" ", "") + ":" + ":".join(line.split(":")[1:]))
+            result.append(line.split(":")[0].upper().replace(" ", "") + ":" + ":".join(line.split(":")[1:]).lower())
         else:
             result.append(line)
     return result

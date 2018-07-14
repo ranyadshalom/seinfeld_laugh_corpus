@@ -124,6 +124,8 @@ def parse_subtitles(srt):
         if i and sub.text == subs[i-1].text:
             continue    # double subtitle
         start, end = get_sub_time_in_seconds(sub.start), get_sub_time_in_seconds(sub.end)
+        sub.text = sub.text.strip("-")
+        sub.text = re.sub(r'</?..?>', '', sub.text)     # remove tags
         if '-'==sub.text[0] or '\n-' in sub.text:
             # if more than one character is speaking, split subtitle
             splitted = [s for s in re.split('(?:^-)|(?:\n-)',sub.text) if s]
