@@ -7,6 +7,7 @@ silence_threshold, trigger_threshold = 2, 150
 detection_interval = 0.05                       # in seconds
 minimum_laughs = 50                             # if extracted less than this, something is wrong.
 
+
 def run(input, output):
     samples_per_second, data = read(input)
     focus_size = int(detection_interval * samples_per_second)
@@ -14,6 +15,9 @@ def run(input, output):
     laughter_times = get_laughter_times(data, focus_size, samples_per_second)
     verify_result(laughter_times)
     write_to_file(laughter_times, output)
+
+    # free memory in case of multiple calls to 'run'
+    samples_per_second, data = None, None
 
 
 def get_laughter_times(data, focus_size, samples_per_second):

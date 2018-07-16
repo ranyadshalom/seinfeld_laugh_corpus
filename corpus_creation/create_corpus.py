@@ -8,23 +8,26 @@ import os
 import subprocess
 import ntpath
 import traceback
+from pympler import tracker
 
 # internal imports
 from corpus_creation.laugh_extraction import extract_laughter_times
 from corpus_creation.screenplay_downloader import screenplay_downloader
 from corpus_creation.screenplay_formatter import screenplay_parser
 from corpus_creation.data_merger import data_merger
+from corpus_creation.subtitle_getter import subtitle_getter
 
 FFMPEG_PATH = os.path.join("external_tools", "ffmpeg", "bin")
 SOX_PATH = os.path.join("external_tools", "sox")
 
+tr = tracker.SummaryTracker()
 
 def run(episodes_path, output_path):
     for dirpath, _, filenames in os.walk(episodes_path):
         for filename in filenames:
             if filename.endswith(".mkv"):
                 file_path = os.path.join(dirpath, filename)
-                processor =Processor(file_path, output_path)
+                processor = Processor(file_path, output_path)
                 processor.process()
 
 
@@ -36,6 +39,7 @@ class Processor:
         self.filepath = filepath      # path of the video file of the episode
         self.outputpath = outputpath  # path of the folder in which to write the output
         self.temp_files = {}               # paths of all the temporary files that will be used in the processing
+        self.files_to_keep = []
         self.filename = ntpath.basename(self.filepath)
         self.merged_filename = self.filepath.rsplit(".", 1)[0] + '.merged'
 
@@ -53,7 +57,8 @@ class Processor:
             self._format_screenplay()
             self._merge_data()
         except LaughExtractionException as e:
-            print("ERROR for '%s': %s" % (self.filename, e))
+            print("ERROR for '%s': Laugh extraction error. %s" % (self.filename, e))
+            traceback.print_exc()
         except SubtitlesNotInSyncException:
             print("ERROR for '%s': Subtitles not in sync." % self.filename)
         except ScreenplayParseException:
@@ -68,6 +73,7 @@ class Processor:
         finally:
             print("Cleaning up...")
             self._cleanup()
+            tr.print_diff()
 
     def _extract_audio(self):
         print("Extracting audio...")
@@ -110,15 +116,23 @@ class Processor:
         # audio file name is the same as the video's but with .wav extension
         self.temp_files['subtitles'] = self.filepath.rsplit(".", 1)[0] + '.srt'
         try:
-            # ffmpeg will extract the subtitles from the .mkv file.
-            exit_code = subprocess.call([os.path.join(FFMPEG_PATH, 'ffmpeg.exe'), "-i", self.filepath, '-map', '0:s:0',
-                                         self.temp_files['subtitles']])
-            if exit_code != 0:
-                raise Exception("ffmpeg exit code: %d. Subtitles could not be extracted. Please make sure"
-                                "that the .mkv file contains text subtitles and not bitmap subtitles." % exit_code)
+            if not os.path.exists(self.temp_files['subtitles']):
+                # ffmpeg will extract the subtitles from the .mkv file.
+                exit_code = subprocess.call([os.path.join(FFMPEG_PATH, 'ffmpeg.exe'), "-i", self.filepath, '-map', '0:s:0',
+                                             self.temp_files['subtitles']])
+                if exit_code != 0:
+                    raise Exception("ffmpeg exit code: %d. Subtitles could not be extracted. Please make sure"
+                                    "that the .mkv file contains text subtitles and not bitmap subtitles." % exit_code)
+            else:
+                print("Using the existing subtitles file.")
+                self.files_to_keep.append('subtitles')
         except Exception as e:
-            del files['subtitle']
+            del self.temp_files['subtitles']
             raise Exception("Make sure you have a working version of ffmpeg in the external_tools folder.\n%s" % str(e))
+
+        # TODO write cleaner
+        if not subtitle_getter.is_in_sync(self.temp_files['subtitles'], self.temp_files['audio']):
+            raise SubtitlesNotInSyncException()
 
     def _get_screenplay(self):
         print("Getting screenplay...")
@@ -145,27 +159,10 @@ class Processor:
                         self.temp_files['laughter_times'], merged_filename)
 
     def _cleanup(self):
-        for filename in self.temp_files.values():
-            os.remove(filename)
-            print("Removed '%s'" % filename)
-
-
-
-
-
-
-        # for each episode:
-        #   extract .wav audio
-        #   extract audience recording
-        #   if audience recording is valid:
-        #       extract laughter times
-        #       download subtitles
-        #           while subtitles don't match
-        #               try another subtitle file (max retries: 4)
-        #           if not found: quit
-        #       download screenplay
-        #       parse screenplay
-        #       merge laughter_times, screenplay, subtitles
+        for key, filename in self.temp_files.items():
+            if key not in self.files_to_keep:
+                os.remove(filename)
+                print("Removed '%s'" % filename)
 
 
 class LaughExtractionException(Exception):

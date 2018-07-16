@@ -9,7 +9,7 @@ output format:
 diaolog dialog dialog
 3.45 (end time in seconds)
 6.55 (laugh time in seconds)
-**LOL** 6.55
+**LOL**
 dialog dialog dialog
 [...]
 """
@@ -21,20 +21,17 @@ from collections import defaultdict
 import os
 import sys
 
-# TODO: Remove .srt formatting tags (<i>, <b>, <u>, </i>, </b>, </u>
-
-Subtitle = namedtuple('Subtitle', ["txt", "start", "end"])   # text (dialog), start (in seconds), end (in seconds)
-Result = namedtuple('Result', ["k", "score"])   # an object that contains the result of the calculations from
-                                                #  the dynamic programming algorithm
-
-match = defaultdict(dict)
-match[tuple()] = defaultdict(lambda: Result(k=0, score=0))
-
 
 def run(screenplay_path, srt_path, laugh_track_path, output_path):
+    global Subtitle, Result, match
+    Subtitle = namedtuple('Subtitle', ["txt", "start", "end"])   # text (dialog), start (in seconds), end (in seconds)
+    Result = namedtuple('Result', ["k", "score"])   # an object that contains the result of the calculations from
+                                                    #  the dynamic programming algorithm
+    match = defaultdict(dict)
+    match[tuple()] = defaultdict(lambda: Result(k=0, score=0))
+
     aligned_subs = merge(screenplay_path, srt_path)
     laugh_times = parse_laugh_track(laugh_track_path)
-
     write_to_file(aligned_subs, laugh_times, output_path)
 
 
@@ -185,7 +182,7 @@ def get_max_k(D, S):
     """
     # A limit for the amount of subtitles that can fit a line of dialog.
     # (Without a reasonable pruning window, calculation becomes too slow.)
-    WINDOW = 14
+    WINDOW = 16
 
     max_score = 0
     max_k = None
