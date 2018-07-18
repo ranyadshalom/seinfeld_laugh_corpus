@@ -8,7 +8,8 @@ import os
 import subprocess
 import ntpath
 import traceback
-from pympler.tracker import SummaryTracker
+from collections import defaultdict
+from gc import get_objects, collect
 
 # internal imports
 from corpus_creation.laugh_extraction import extract_laughter_times
@@ -20,17 +21,26 @@ from corpus_creation.subtitle_getter import subtitle_getter
 FFMPEG_PATH = os.path.join("external_tools", "ffmpeg", "bin")
 SOX_PATH = os.path.join("external_tools", "sox")
 
-tracker = SummaryTracker()
+
+def get_gc_objects_dict():
+    gc_objects = defaultdict(int)
+    for o in get_objects():
+        gc_objects[type(o)] += 1
+    return gc_objects
 
 
 def run(episodes_path, output_path):
     for dirpath, _, filenames in os.walk(episodes_path):
+        before = get_gc_objects_dict()
         for filename in filenames:
             if filename.endswith(".mkv"):
                 file_path = os.path.join(dirpath, filename)
                 processor = Processor(file_path, output_path)
                 processor.process()
-                tracker.print_diff()    # to trace memory leaks. remove this line later.
+                after = get_gc_objects_dict()
+                processor = None
+                collect()
+                print([(k, after[k] - before[k]) for k in after if after[k] - before[k] > 0])
 
 
 class Processor:
@@ -75,7 +85,6 @@ class Processor:
         finally:
             print("Cleaning up...")
             self._cleanup()
- #          tr.print_diff()
 
     def _extract_audio(self):
         print("Extracting audio...")
@@ -133,8 +142,8 @@ class Processor:
             raise Exception("Make sure you have a working version of ffmpeg in the external_tools folder.\n%s" % str(e))
 
         # TODO write cleaner
-        if not subtitle_getter.is_in_sync(self.temp_files['subtitles'], self.temp_files['audio']):
-            raise SubtitlesNotInSyncException()
+        #if not subtitle_getter.is_in_sync(self.temp_files['subtitles'], self.temp_files['audio']):
+        #    raise SubtitlesNotInSyncException()
 
     def _get_screenplay(self):
         print("Getting screenplay...")

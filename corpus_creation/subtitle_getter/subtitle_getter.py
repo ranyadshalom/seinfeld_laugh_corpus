@@ -45,7 +45,7 @@ def is_in_sync(subtitles, audio):
     # count how many subtitle starting times match actual peaks in the audio.
     peaks = 0
     for sub in subs:
-        print(sub.text)
+        #print(sub.text)
         if is_a_peak((sub.start.ordinal / 1000), dbs):
             peaks += 1
 
