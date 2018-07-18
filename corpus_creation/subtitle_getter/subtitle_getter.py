@@ -41,7 +41,7 @@ def is_in_sync(subtitles, audio):
     """
     subs = pysrt.open(subtitles, encoding='ansi ', error_handling='ignore')
     dbs = get_audio_db(audio)
-    sync_threshold = 0.13   # percent of subtitles to have audio peaks for the subtitle file to be considered in sync
+    sync_threshold = 0.05   # percent of subtitles to have audio peaks for the subtitle file to be considered in sync
     # count how many subtitle starting times match actual peaks in the audio.
     peaks = 0
     for sub in subs:
@@ -60,7 +60,7 @@ def get_audio_db(audio_file):
     :param audio_file:
     :return: an array of calculated dB for the audio file, with the resolution of
     """
-    samples_per_second, wavdata = read(audio_file)
+    samples_per_second, wavdata = read(audio_file, mmap=True)
 
     # split audio to chunks to measure Db
     numchunks = int((len(wavdata) / samples_per_second) * db_measurement_chunks_per_second)

@@ -9,7 +9,7 @@ minimum_laughs = 50                             # if extracted less than this, s
 
 
 def run(input, output):
-    samples_per_second, data = read(input)
+    samples_per_second, data = read(input, mmap=True)
     focus_size = int(detection_interval * samples_per_second)
 
     laughter_times = get_laughter_times(data, focus_size, samples_per_second)

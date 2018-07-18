@@ -102,6 +102,6 @@ def capitalize_all_character_names(lines):
 
 
 def write_to_file(screenplay_txt, output):
-    with open(output, 'w') as f:
+    with open(output, 'w', encoding='utf8', errors='ignore') as f:
         f.write(screenplay_txt)
 

@@ -5,42 +5,30 @@ A module that creates the annotated Seinfeld corpus from scratch, given the epis
 # python imports
 import argparse
 import os
+import psutil
 import subprocess
 import ntpath
 import traceback
-from collections import defaultdict
-from gc import get_objects, collect
 
 # internal imports
-from corpus_creation.laugh_extraction import extract_laughter_times
-from corpus_creation.screenplay_downloader import screenplay_downloader
-from corpus_creation.screenplay_formatter import screenplay_parser
-from corpus_creation.data_merger import data_merger
-from corpus_creation.subtitle_getter import subtitle_getter
+from laugh_extraction import extract_laughter_times
+from screenplay_downloader import screenplay_downloader
+from screenplay_formatter import screenplay_parser
+from data_merger import data_merger
+from subtitle_getter import subtitle_getter
 
 FFMPEG_PATH = os.path.join("external_tools", "ffmpeg", "bin")
 SOX_PATH = os.path.join("external_tools", "sox")
 
 
-def get_gc_objects_dict():
-    gc_objects = defaultdict(int)
-    for o in get_objects():
-        gc_objects[type(o)] += 1
-    return gc_objects
-
-
 def run(episodes_path, output_path):
     for dirpath, _, filenames in os.walk(episodes_path):
-        before = get_gc_objects_dict()
         for filename in filenames:
             if filename.endswith(".mkv"):
+                print(psutil.virtual_memory())
                 file_path = os.path.join(dirpath, filename)
                 processor = Processor(file_path, output_path)
                 processor.process()
-                after = get_gc_objects_dict()
-                processor = None
-                collect()
-                print([(k, after[k] - before[k]) for k in after if after[k] - before[k] > 0])
 
 
 class Processor:
@@ -142,8 +130,8 @@ class Processor:
             raise Exception("Make sure you have a working version of ffmpeg in the external_tools folder.\n%s" % str(e))
 
         # TODO write cleaner
-        #if not subtitle_getter.is_in_sync(self.temp_files['subtitles'], self.temp_files['audio']):
-        #    raise SubtitlesNotInSyncException()
+        if not subtitle_getter.is_in_sync(self.temp_files['subtitles'], self.temp_files['audio']):
+            raise SubtitlesNotInSyncException()
 
     def _get_screenplay(self):
         print("Getting screenplay...")
@@ -190,6 +178,7 @@ class ScreenplayParseException(Exception):
 
 class MergeException(Exception):
     pass
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="A script to create the Seinfeld corpus from scratch.")
