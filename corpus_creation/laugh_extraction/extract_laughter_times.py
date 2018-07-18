@@ -16,9 +16,6 @@ def run(input, output):
     verify_result(laughter_times)
     write_to_file(laughter_times, output)
 
-    # free memory in case of multiple calls to 'run'
-    samples_per_second, data = None, None
-
 
 def get_laughter_times(data, focus_size, samples_per_second):
     """

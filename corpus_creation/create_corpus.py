@@ -8,7 +8,7 @@ import os
 import subprocess
 import ntpath
 import traceback
-from pympler import tracker
+from pympler.tracker import SummaryTracker
 
 # internal imports
 from corpus_creation.laugh_extraction import extract_laughter_times
@@ -20,7 +20,8 @@ from corpus_creation.subtitle_getter import subtitle_getter
 FFMPEG_PATH = os.path.join("external_tools", "ffmpeg", "bin")
 SOX_PATH = os.path.join("external_tools", "sox")
 
-tr = tracker.SummaryTracker()
+tracker = SummaryTracker()
+
 
 def run(episodes_path, output_path):
     for dirpath, _, filenames in os.walk(episodes_path):
@@ -29,6 +30,7 @@ def run(episodes_path, output_path):
                 file_path = os.path.join(dirpath, filename)
                 processor = Processor(file_path, output_path)
                 processor.process()
+                tracker.print_diff()    # to trace memory leaks. remove this line later.
 
 
 class Processor:
@@ -73,7 +75,7 @@ class Processor:
         finally:
             print("Cleaning up...")
             self._cleanup()
-            tr.print_diff()
+ #          tr.print_diff()
 
     def _extract_audio(self):
         print("Extracting audio...")

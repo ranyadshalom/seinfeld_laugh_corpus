@@ -7,6 +7,7 @@ from math import log10, sqrt
 peak_detection_threshold = 100              # the amplitude difference between 2 sample points to be considered as a peak
 db_measurement_chunks_per_second = 20       # chunks (to measure dB of) per second.
 
+
 def run(episode_video, episode_audio, output):
     """
     not yet working!
@@ -40,6 +41,7 @@ def is_in_sync(subtitles, audio):
     """
     subs = pysrt.open(subtitles, encoding='ansi ', error_handling='ignore')
     dbs = get_audio_db(audio)
+    sync_threshold = 0.13   # percent of subtitles to have audio peaks for the subtitle file to be considered in sync
     # count how many subtitle starting times match actual peaks in the audio.
     peaks = 0
     for sub in subs:
@@ -48,7 +50,8 @@ def is_in_sync(subtitles, audio):
             peaks += 1
 
     sync_measure = peaks / len(subs)
-    print("'%s' subtitle/audio sync measure is: %.2f" % (audio.rsplit(".", 1)[0], subtitles))
+    print("'%s' subtitle/audio sync measure is: %.2f" % (audio.rsplit(".", 1)[0], sync_measure))
+    return True if sync_measure > sync_threshold else False
 
 
 def get_audio_db(audio_file):
@@ -77,6 +80,7 @@ def log10wrapper(num):
     else:
         return log10(num)
 
+
 def is_a_peak(sub_time, dbs):
     """
     :param sub_time: in seconds
@@ -84,10 +88,20 @@ def is_a_peak(sub_time, dbs):
     :param samples_per_second:
     :return: True if it's a peak, False otherwise.
     """
-    # TODO write algorithm..
-    # for now just print around this chunk
+    silence_threshold = 35
+    talking_threshold = 45
     chunk_i = int(sub_time * db_measurement_chunks_per_second)
 
+    silence = False
     for i in range(-5, 6):
-            print('%.2f' % dbs[chunk_i + i], end=' ')
-    print("")
+        # print('%.2f' % dbs[chunk_i + i], end=' ')
+        if dbs[chunk_i + i] < silence_threshold:
+            silence = True
+        elif dbs[chunk_i + i] >= talking_threshold and silence == True:
+            silence = False
+            return True     # is a peak
+
+    # print("")
+    return False    # not a peak
+
+
