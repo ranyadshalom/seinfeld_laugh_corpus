@@ -14,6 +14,8 @@ from subtitle_getter import subtitle_getter
 FFMPEG_PATH = os.path.join("external_tools", "ffmpeg", "bin")
 SOX_PATH = os.path.join("external_tools", "sox")
 
+# TODO BUGFIX: after a while, LOLs stop appearing in the merged screenplays!
+
 
 def run(file_path, output_path):
     processor = Processor(file_path, output_path)
@@ -70,7 +72,7 @@ class Processor:
         try:
             # ffmpeg will extract the audio in uncompressed PCM format.
             exit_code = subprocess.call([os.path.join(FFMPEG_PATH, 'ffmpeg.exe'), "-i", self.filepath,
-                                         self.temp_files['audio']])
+                                         self.temp_files['audio']], stdout=subprocess.DEVNULL)
             if exit_code != 0:
                 raise Exception("ffmpeg exit code: %d. Your video file may be corrupted." % exit_code)
         except Exception as e:
@@ -83,7 +85,7 @@ class Processor:
 
         try:
             exit_code = subprocess.call([os.path.join(SOX_PATH, 'sox.exe'), '--norm', self.temp_files['audio'],
-                                         self.temp_files['laugh_track'], "oops"])
+                                         self.temp_files['laugh_track'], "oops"], stdout=subprocess.DEVNULL)
             if exit_code != 0:
                 raise Exception("sox exit code: %d." % exit_code)
         except Exception as e:
@@ -107,7 +109,7 @@ class Processor:
             if not os.path.exists(self.temp_files['subtitles']):
                 # ffmpeg will extract the subtitles from the .mkv file.
                 exit_code = subprocess.call([os.path.join(FFMPEG_PATH, 'ffmpeg.exe'), "-i", self.filepath, '-map', '0:s:0',
-                                             self.temp_files['subtitles']])
+                                             self.temp_files['subtitles']], stdout=subprocess.DEVNULL)
                 if exit_code != 0:
                     raise Exception("ffmpeg exit code: %d. Subtitles could not be extracted. Please make sure"
                                     "that the .mkv file contains text subtitles and not bitmap subtitles." % exit_code)
