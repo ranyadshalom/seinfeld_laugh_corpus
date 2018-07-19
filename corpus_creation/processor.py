@@ -159,10 +159,6 @@ class LaughExtractionException(Exception):
     pass
 
 
-class SubtitlesNotInSyncException(Exception):
-    pass
-
-
 class ScreenplayParseException(Exception):
     pass
 

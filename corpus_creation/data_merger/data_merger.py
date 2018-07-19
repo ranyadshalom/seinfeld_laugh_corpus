@@ -32,6 +32,7 @@ def run(screenplay_path, srt_path, laugh_track_path, output_path):
 
     aligned_subs = merge(screenplay_path, srt_path)
     laugh_times = parse_laugh_track(laugh_track_path)
+    laugh_times = remove_illegal_laugh_times(laugh_times, aligned_subs)
     write_to_file(aligned_subs, laugh_times, output_path)
 
 
@@ -58,6 +59,22 @@ def write_to_file(aligned_subs, laugh_times, output):
             else:
                 # character name
                 f.write("# %s" % line[1])
+
+
+def remove_illegal_laugh_times(laugh_times, aligned_subs):
+    """
+    :param laughter_times:
+    :param aligned_subtitles:
+    :return: a fixed 'laughter_times' list
+    """
+    i = 0
+    while not isinstance(aligned_subs, Subtitle):
+        i += 1
+
+    while laugh_times[0] < aligned_subs[0].start + 0.5:
+        laugh_times = laugh_times[1:]
+    return laugh_times
+
 
 
 def merge(screenplay_path, srt_path):
