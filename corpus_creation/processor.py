@@ -10,10 +10,8 @@ from screenplay_downloader import screenplay_downloader
 from screenplay_formatter import screenplay_parser
 from data_merger import data_merger
 from subtitle_getter import subtitle_getter
-
-FFMPEG_PATH = os.path.join("external_tools", "ffmpeg", "bin")
-SOX_PATH = os.path.join("external_tools", "sox")
-
+from subtitle_getter.subtitle_getter import SubtitlesNotInSyncException
+from config import FFMPEG_PATH, SOX_PATH
 # TODO BUGFIX: after a while, LOLs stop appearing in the merged screenplays!
 
 
@@ -106,19 +104,10 @@ class Processor:
         # audio file name is the same as the video's but with .wav extension
         self.temp_files['subtitles'] = self.filepath.rsplit(".", 1)[0] + '.srt'
         try:
-            if not os.path.exists(self.temp_files['subtitles']):
-                # ffmpeg will extract the subtitles from the .mkv file.
-                exit_code = subprocess.call([os.path.join(FFMPEG_PATH, 'ffmpeg.exe'), "-i", self.filepath, '-map', '0:s:0',
-                                             self.temp_files['subtitles']], stdout=subprocess.DEVNULL)
-                if exit_code != 0:
-                    raise Exception("ffmpeg exit code: %d. Subtitles could not be extracted. Please make sure"
-                                    "that the .mkv file contains text subtitles and not bitmap subtitles." % exit_code)
-            else:
-                print("Using the existing subtitles file.")
-                self.files_to_keep.append('subtitles')
+            subtitle_getter.run(self.filepath, self.temp_files['audio'], self.temp_files['subtitles'],)
         except Exception as e:
             del self.temp_files['subtitles']
-            raise Exception("Make sure you have a working version of ffmpeg in the external_tools folder.\n%s" % str(e))
+            raise Exception("Error getting subtitles: %s" % str(e))
 
         # TODO write cleaner
         if not subtitle_getter.is_in_sync(self.temp_files['subtitles'], self.temp_files['audio']):

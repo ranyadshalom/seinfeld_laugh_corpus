@@ -1,14 +1,16 @@
 import pysrt
-import sys
 import re
 import requests
+import os
+import subprocess
+import ntpath
+import gzip
 from scipy.io.wavfile import read
 from numpy import mean, array_split, array
 from math import log10, sqrt
 from pythonopensubtitles.opensubtitles import OpenSubtitles
 
-
-from config import opensubtitles_credentials
+from corpus_creation.config import opensubtitles_credentials, FFMPEG_PATH
 
 peak_detection_threshold = 100            # the amplitude difference between 2 sample points to be considered as a peak
 db_measurement_chunks_per_second = 20     # chunks (to measure dB of) per second.
@@ -20,21 +22,22 @@ ost_token = ost.login(opensubtitles_credentials['user'], opensubtitles_credentia
 def run(episode_video, episode_audio, output):
     try:
         if not os.path.exists(output):
-            extract_subtitles_from_mkv(episode_video, episode_audio, output)
+            extract_subtitles_from_mkv(episode_video, output)
         else:
             print("Using the existing subtitles file.")
         if is_in_sync(output, episode_audio):
             return
+        else:
+            print("Subtitles from .mkv file are not in sync! trying to download...")
     except Exception as e:
         print("Couldn't extract subtitles from .mkv! (%s)\n"
               "Make sure you have a working version of ffmpeg in the external_tools folder.\n"
               "trying to download them..." % str(e))
 
-    print("Subtitles from .mkv file are not in sync! trying to download...")
     fetch_subtitles_from_opensubtitles(episode_video, episode_audio, output)
 
 
-def extract_subtitles_from_mkv(episode_video, episode_audio, output):
+def extract_subtitles_from_mkv(episode_video, output):
     # ffmpeg will extract the subtitles from the .mkv file.
     exit_code = subprocess.call([os.path.join(FFMPEG_PATH, 'ffmpeg.exe'), "-i", episode_video, '-map', '0:s:0',
                                  output], stdout=subprocess.DEVNULL)
@@ -43,20 +46,26 @@ def extract_subtitles_from_mkv(episode_video, episode_audio, output):
                         "that the .mkv file contains text subtitles and not bitmap subtitles." % exit_code)
 
 
-def fetch_subtitles_from_opensubtitles(episode_video, episode_audio, output):
+def fetch_subtitles_from_opensubtitles(episode_video_path, episode_audio, output):
+    episode_video = ntpath.basename(episode_video_path)
     max_retries = 5
     # downloading code
     m = re.findall(r'\d+', episode_video)
-    se, ep = m[0], m[1]
-    ost.search_subtitles([{'query': 'Seinfeld',
-                           'episode': ep,
-                           'season': se}])
+    se, ep = int(m[0]), int(m[1])
+    results = ost.search_subtitles([{'query': 'Seinfeld',
+                                     'episode': ep,
+                                     'season': se,
+                                     'sublanguageid': 'eng'}])
 
     for result in results[:max_retries]:
-        download_subtitle(result, output)
-        if is_in_sync(output, episode_audio):
-            print("Found a subtitle that is in sync: %s" % result['SubFileName'])
-            return
+        try:
+            download_subtitle(result, output)
+            if is_in_sync(output, episode_audio):
+                print("Found a subtitle that is in sync: %s" % result['SubFileName'])
+                return
+        except Exception as e:
+            print("ERROR download sutitle '%s': %s" % (result['SubFileName'], str(e)))
+            pass
 
     raise Exception("Out of %d opensubtitles results, none of them are in sync!" % len(results))
 
@@ -64,8 +73,11 @@ def fetch_subtitles_from_opensubtitles(episode_video, episode_audio, output):
 def download_subtitle(result, output):
     url = result['SubDownloadLink']
     res = requests.get(url)
+    if res.status_code != 200:
+        raise Exception("server returned %d: %s" % (res.status_code, res.reason))
+    content = gzip.decompress(res.content)
     with open(output, 'w', encoding='utf8', errors='ignore') as f:
-        f.write(res.content)
+        f.write(content)
 
 
 def is_in_sync(subtitles, audio):
@@ -134,7 +146,6 @@ def is_a_peak(sub_time, dbs):
         if dbs[chunk_i + i] < silence_threshold:
             silence = True
         elif dbs[chunk_i + i] >= talking_threshold and silence == True:
-            silence = False
             return True     # is a peak
 
     # print("")
