@@ -20,12 +20,13 @@ ost_token = ost.login(opensubtitles_credentials['user'], opensubtitles_credentia
 
 
 def run(episode_video, episode_audio, output):
+    dbs = get_audio_dbs(episode_audio)
     try:
         if not os.path.exists(output):
             extract_subtitles_from_mkv(episode_video, output)
         else:
             print("Using the existing subtitles file.")
-        if is_in_sync(output, episode_audio):
+        if is_in_sync(output, dbs):
             return
         else:
             print("Subtitles from .mkv file are not in sync! trying to download...")
@@ -34,7 +35,7 @@ def run(episode_video, episode_audio, output):
               "Make sure you have a working version of ffmpeg in the external_tools folder.\n"
               "trying to download them..." % str(e))
 
-    fetch_subtitles_from_opensubtitles(episode_video, episode_audio, output)
+    fetch_subtitles_from_opensubtitles(episode_video, dbs, output)
 
 
 def extract_subtitles_from_mkv(episode_video, output):
@@ -46,7 +47,7 @@ def extract_subtitles_from_mkv(episode_video, output):
                         "that the .mkv file contains text subtitles and not bitmap subtitles." % exit_code)
 
 
-def fetch_subtitles_from_opensubtitles(episode_video_path, episode_audio, output):
+def fetch_subtitles_from_opensubtitles(episode_video_path, dbs, output):
     episode_video = ntpath.basename(episode_video_path)
     max_retries = 5
     # downloading code
@@ -60,8 +61,9 @@ def fetch_subtitles_from_opensubtitles(episode_video_path, episode_audio, output
     for result in results[:max_retries]:
         try:
             download_subtitle(result, output)
-            if is_in_sync(output, episode_audio):
-                print("Found a subtitle that is in sync: %s" % result['SubFileName'])
+            print("Checking if subtitle '%s' is in sync..." % result['SubFileName'])
+            if is_in_sync(output, dbs):
+                print("Success! Subtitle in sync.")
                 return
         except Exception as e:
             print("ERROR download sutitle '%s': %s" % (result['SubFileName'], str(e)))
@@ -76,19 +78,18 @@ def download_subtitle(result, output):
     if res.status_code != 200:
         raise Exception("server returned %d: %s" % (res.status_code, res.reason))
     content = gzip.decompress(res.content)
-    with open(output, 'w', encoding='utf8', errors='ignore') as f:
+    with open(output, 'wb') as f:
         f.write(content)
 
 
-def is_in_sync(subtitles, audio):
+def is_in_sync(subtitles, dbs):
     """
     Checks if the subtitles match the audio.
     :param subtitles: path to an .srt file
-    :param audio: path to the episode's .wav audio file.
+    :param dbs: an array of the audio's dB levels.
     :return: False if not in sync OR 'subtitles' file doesn't exist.
     """
     subs = pysrt.open(subtitles, encoding='ansi ', error_handling='ignore')
-    dbs = get_audio_db(audio)
     sync_threshold = 0.05   # percent of subtitles to have audio peaks for the subtitle file to be considered in sync
     # count how many subtitle starting times match actual peaks in the audio.
     peaks = 0
@@ -98,15 +99,14 @@ def is_in_sync(subtitles, audio):
             peaks += 1
 
     sync_measure = peaks / len(subs)
-    print("'%s' subtitle/audio sync measure is: %.2f" % (audio.rsplit(".", 1)[0], sync_measure))
+    print("subtitle/audio sync measure is: %.2f" % sync_measure)
     return True if sync_measure > sync_threshold else False
 
 
-def get_audio_db(audio_file):
+def get_audio_dbs(audio_file):
     """
-
-    :param audio_file:
-    :return: an array of calculated dB for the audio file, with the resolution of
+    :param audio_file: The path to the episode's audio file.
+    :return: an array of calculated dB measurements for the audio file.
     """
     samples_per_second, wavdata = read(audio_file, mmap=True)
 

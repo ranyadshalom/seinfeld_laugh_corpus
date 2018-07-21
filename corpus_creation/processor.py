@@ -109,10 +109,6 @@ class Processor:
             del self.temp_files['subtitles']
             raise Exception("Error getting subtitles: %s" % str(e))
 
-        # TODO write cleaner
-        if not subtitle_getter.is_in_sync(self.temp_files['subtitles'], self.temp_files['audio']):
-            raise SubtitlesNotInSyncException()
-
     def _get_screenplay(self):
         print("Getting screenplay...")
         self.temp_files['screenplay'] = self.filepath.rsplit(".", 1)[0] + '.screenplay'
