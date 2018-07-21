@@ -68,13 +68,12 @@ def remove_illegal_laugh_times(laugh_times, aligned_subs):
     :return: a fixed 'laughter_times' list
     """
     i = 0
-    while not isinstance(aligned_subs, Subtitle):
+    while not isinstance(aligned_subs[i], Subtitle):
         i += 1
 
-    while laugh_times[0] < aligned_subs[0].start + 0.5:
+    while laugh_times[0] < aligned_subs[i].start + 0.5:
         laugh_times = laugh_times[1:]
     return laugh_times
-
 
 
 def merge(screenplay_path, srt_path):
