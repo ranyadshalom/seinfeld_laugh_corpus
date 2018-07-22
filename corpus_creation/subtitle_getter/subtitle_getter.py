@@ -57,13 +57,22 @@ def extract_subtitles_from_mkv(episode_video, output):
 def fetch_subtitles_from_opensubtitles(episode_video_path, dbs, output):
     episode_video = ntpath.basename(episode_video_path)
     max_retries = 6
+    retry = 60
     # downloading code
     m = re.findall(r'\d+', episode_video)
     se, ep = int(m[0]), int(m[1])
-    results = ost.search_subtitles([{'query': 'Seinfeld',
-                                     'episode': ep,
-                                     'season': se,
-                                     'sublanguageid': 'eng'}])
+    while True:
+        try:
+            results = ost.search_subtitles([{'query': 'Seinfeld',
+                                             'episode': ep,
+                                             'season': se,
+                                             'sublanguageid': 'eng'}])
+        except Exception as e:
+            print("Error getting search results from 'opensubtitles'. retrying in %d seconds...")
+            sleep(retry)
+            retry *= 2
+        else:
+            break
 
     for result in results[:max_retries]:
         try:
@@ -184,16 +193,22 @@ def is_a_peak(sub_time, dbs):
     talking_threshold = 45
     chunk_i = int(sub_time * db_measurement_chunks_per_second)
 
-    silence = False
-    for i in range(-5, 6):
+    silence, possible_speech, peak = False, False, False
+    for i in range(-2, 6):
         # print('%.2f' % dbs[chunk_i + i], end=' ')
         if dbs[chunk_i + i] < silence_threshold:
             silence = True
+            possible_speech = False
+            peak = False
         elif dbs[chunk_i + i] >= talking_threshold and silence == True:
-            return True     # is a peak
-
+            silence = False
+            peak = False
+            possible_speech = True
+        if dbs[chunk_i + i] > silence_threshold and possible_speech:
+            peak = True
+    return peak
     # print("")
-    return False    # not a peak
+
 
 
 class SubtitlesNotInSyncException(Exception):
