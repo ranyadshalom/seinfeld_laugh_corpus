@@ -5,7 +5,7 @@ from scipy.io.wavfile import read
 
 silence_threshold, trigger_threshold = 2, 150
 detection_interval = 0.05                       # in seconds
-minimum_laughs = 50                             # if extracted less than this, something is wrong.
+minimum_laughs = 80                             # if extracted less than this, something is wrong.
 
 
 def run(input, output):

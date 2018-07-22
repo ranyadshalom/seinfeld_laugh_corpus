@@ -88,6 +88,8 @@ def download_subtitle(result, output):
     with open(output, 'wb') as f:
         f.write(content)
 
+# TODO function 'is_valid' which will check if subtitles are in sync and if the have enough dashes
+
 
 def is_in_sync(subtitles, dbs):
     """
