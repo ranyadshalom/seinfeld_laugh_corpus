@@ -12,7 +12,6 @@ from data_merger import data_merger
 from subtitle_getter import subtitle_getter
 from subtitle_getter.subtitle_getter import SubtitlesNotInSyncException
 from config import FFMPEG_PATH, SOX_PATH
-# TODO BUGFIX: after a while, LOLs stop appearing in the merged screenplays!
 
 
 def run(file_path, output_path):

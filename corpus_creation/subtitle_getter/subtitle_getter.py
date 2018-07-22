@@ -5,6 +5,7 @@ import os
 import subprocess
 import ntpath
 import gzip
+from time import sleep
 from scipy.io.wavfile import read
 from numpy import mean, array_split, array
 from math import log10, sqrt
@@ -14,9 +15,15 @@ from corpus_creation.config import opensubtitles_credentials, FFMPEG_PATH
 
 peak_detection_threshold = 100            # the amplitude difference between 2 sample points to be considered as a peak
 db_measurement_chunks_per_second = 20     # chunks (to measure dB of) per second.
+ost_retry = 60                            # number of seconds to wait before retrying to connect to opensubtitles.
 
 ost = OpenSubtitles()
-ost_token = ost.login(opensubtitles_credentials['user'], opensubtitles_credentials['password'])
+try:
+    ost_token = ost.login(opensubtitles_credentials['user'], opensubtitles_credentials['password'])
+except Exception as e:
+    print("ERROR getting Opensubtitles token: %s.\n Retrying in %d seconds..." % (str(e), ost_retry))
+    sleep(ost_retry)
+    ost_retry *= 2  # exponential backoff
 
 
 def run(episode_video, episode_audio, output):
