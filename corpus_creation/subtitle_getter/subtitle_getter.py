@@ -33,10 +33,10 @@ def run(episode_video, episode_audio, output):
             extract_subtitles_from_mkv(episode_video, output)
         else:
             print("Using the existing subtitles file.")
-        if is_in_sync(output, dbs):
+        if is_valid(output, dbs):
             return
         else:
-            print("Subtitles from .mkv file are not in sync! trying to download...")
+            print("Subtitles from .mkv file are not in valid! trying to download...")
     except Exception as e:
         print("Couldn't extract subtitles from .mkv! (%s)\n"
               "Make sure you have a working version of ffmpeg in the external_tools folder.\n"
@@ -56,7 +56,7 @@ def extract_subtitles_from_mkv(episode_video, output):
 
 def fetch_subtitles_from_opensubtitles(episode_video_path, dbs, output):
     episode_video = ntpath.basename(episode_video_path)
-    max_retries = 5
+    max_retries = 6
     # downloading code
     m = re.findall(r'\d+', episode_video)
     se, ep = int(m[0]), int(m[1])
@@ -69,14 +69,14 @@ def fetch_subtitles_from_opensubtitles(episode_video_path, dbs, output):
         try:
             download_subtitle(result, output)
             print("Checking if subtitle '%s' is in sync..." % result['SubFileName'])
-            if is_in_sync(output, dbs):
-                print("Success! Subtitle in sync.")
+            if is_valid(output, dbs):
+                print("Success! Subtitle are valid.")
                 return
         except Exception as e:
-            print("ERROR download sutitle '%s': %s" % (result['SubFileName'], str(e)))
+            print("ERROR downloading subtitle '%s': %s" % (result['SubFileName'], str(e)))
             pass
 
-    raise Exception("Out of %d opensubtitles results, none of them are in sync!" % len(results))
+    raise Exception("Out of %d opensubtitles results, none of them are valid!" % len(results[:max_retries]))
 
 
 def download_subtitle(result, output):
@@ -88,17 +88,51 @@ def download_subtitle(result, output):
     with open(output, 'wb') as f:
         f.write(content)
 
-# TODO function 'is_valid' which will check if subtitles are in sync and if the have enough dashes
+
+def is_valid(subtitles, dbs):
+    """
+    Checks the validity of the subtitles.
+    :param subtitles: the path to the .srt subtitle file.
+    :param dbs: an array of the dB audio levels.
+    :return: True if they're valid, False otherwise.
+    """
+    subs = pysrt.open(subtitles, encoding='ansi ', error_handling='ignore')
+
+    if not has_enough_dashes(subs):
+        print("Subtitles don't have enough dashes. Dropping them.")
+        return False
+    if not is_in_sync(subs, dbs):
+        print("Subtitles aren't in sync")
+        return False
+    return True
 
 
-def is_in_sync(subtitles, dbs):
+def has_enough_dashes(subs):
+    """
+    A common convention in movie subtitles, is that when the speech of 2 characters is covered by one subtitle, it is
+    denoted by a dash. Some subtitles on the web do not have these dashes, which may compromise the integrity of our
+    produced data, thus we must disqualify those dash-lacking subtitles..
+    :param sub: a list of pysrt Subtitles.
+    :return: True if it has enough dashes, False otherwise.
+    """
+    min_dash_threshold = 1
+    dashes = 0
+    for sub in subs:
+        lines = re.split(r'[\n\r]', sub.text)
+        for line in lines:
+            if line[0] == '-':
+                dashes += 1
+
+    return dashes >= min_dash_threshold
+
+
+def is_in_sync(subs, dbs):
     """
     Checks if the subtitles match the audio.
-    :param subtitles: path to an .srt file
+    :param subs: a list of pysrt Subtitles.
     :param dbs: an array of the audio's dB levels.
     :return: False if not in sync OR 'subtitles' file doesn't exist.
     """
-    subs = pysrt.open(subtitles, encoding='ansi ', error_handling='ignore')
     sync_threshold = 0.05   # percent of subtitles to have audio peaks for the subtitle file to be considered in sync
     # count how many subtitle starting times match actual peaks in the audio.
     peaks = 0
@@ -125,6 +159,7 @@ def get_audio_dbs(audio_file):
     chunks = [array(chunk, dtype='int64') for chunk in chunks]      # to prevent integer overflow
     dbs = [20*log10wrapper( sqrt(mean(chunk**2)) ) for chunk in chunks]     # list of dB values for the chunks
 
+    # TODO normalize audio
     return dbs
 
 
@@ -163,3 +198,13 @@ def is_a_peak(sub_time, dbs):
 
 class SubtitlesNotInSyncException(Exception):
     pass
+
+
+if __name__ == '__main__':
+    # tests
+    subs = pysrt.open('Seinfeld.S08E05.The.Package.srt', encoding='ansi ', error_handling='ignore')
+    assert(not has_enough_dashes(subs))
+    subs = pysrt.open('Seinfeld.S06E07.The.Soup.srt', encoding='ansi ', error_handling='ignore')
+    assert(not has_enough_dashes(subs))
+    subs = pysrt.open('Seinfeld.S04E07.The.Bubble.Boy.srt', encoding='ansi ', error_handling='ignore')
+    assert(has_enough_dashes(subs))

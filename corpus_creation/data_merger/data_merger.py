@@ -136,6 +136,9 @@ def parse_subtitles(srt):
     for i, sub in enumerate(subs):
         if i and sub.text == subs[i-1].text:
             continue    # double subtitle
+        if re.search(r'\w+\.\w+', sub.text):
+            print("Commercial spotted, subtitle '%s' removed." % sub.text)
+            continue
         start, end = get_sub_time_in_seconds(sub.start), get_sub_time_in_seconds(sub.end)
         sub.text = sub.text.strip("-")
         sub.text = re.sub(r'</?..?>', '', sub.text)     # remove tags
