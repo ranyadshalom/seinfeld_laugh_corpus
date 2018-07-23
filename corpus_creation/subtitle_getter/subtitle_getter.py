@@ -8,10 +8,11 @@ import gzip
 from time import sleep
 from scipy.io.wavfile import read
 from numpy import mean, array_split, array
-from math import log10, sqrt
+from math import sqrt
 from pythonopensubtitles.opensubtitles import OpenSubtitles
 
 from corpus_creation.config import opensubtitles_credentials, FFMPEG_PATH
+from corpus_creation.utils.utils import log10wrapper
 
 peak_detection_threshold = 100            # the amplitude difference between 2 sample points to be considered as a peak
 db_measurement_chunks_per_second = 20     # chunks (to measure dB of) per second.
@@ -170,16 +171,6 @@ def get_audio_dbs(audio_file):
 
     # TODO normalize audio
     return dbs
-
-
-def log10wrapper(num):
-    """
-    :return: returns float_min instead of exception when given 0
-    """
-    if num == 0:
-        return -float('inf')
-    else:
-        return log10(num)
 
 
 def is_a_peak(sub_time, dbs):

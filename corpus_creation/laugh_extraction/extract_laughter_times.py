@@ -1,43 +1,67 @@
 import argparse
-
-# package imports
+from numpy import mean, array_split, array, median, percentile, std
+from math import sqrt
 from scipy.io.wavfile import read
 
-silence_threshold, trigger_threshold = 2, 150
-detection_interval = 0.05                       # in seconds
+from corpus_creation.utils.utils import log10wrapper
+
+db_measurement_chunks_per_second = 5            # chunks (to measure dB of) per second.
 minimum_laughs = 80                             # if extracted less than this, something is wrong.
 
 
 def run(input, output):
-    samples_per_second, data = read(input, mmap=True)
-    focus_size = int(detection_interval * samples_per_second)
+    dbs = get_audio_dbs(input)
+    laughter_times = get_laughter_times(dbs)
 
-    laughter_times = get_laughter_times(data, focus_size, samples_per_second)
     verify_result(laughter_times)
     write_to_file(laughter_times, output)
 
 
-def get_laughter_times(data, focus_size, samples_per_second):
+def get_audio_dbs(audio_file):
+    """
+    :param audio_file: The path to the episode's audio file.
+    :return: an array of calculated dB measurements for the audio file.
+    """
+    samples_per_second, wavdata = read(audio_file, mmap=True)
+
+    # split audio to chunks to measure Db
+    numchunks = int((len(wavdata) / samples_per_second) * db_measurement_chunks_per_second)
+    chunks = array_split(wavdata, numchunks)
+    chunks = [array(chunk, dtype='int64') for chunk in chunks]      # to prevent integer overflow
+    dbs = [20*log10wrapper( sqrt(mean(chunk**2)) ) for chunk in chunks]     # list of dB values for the chunks
+
+    return dbs
+
+
+def get_laughter_times(dbs):
     """
     :return: an array of the laugh timestamps in seconds.
     """
-    laughter_times = []
-    before_silence = False
-    i = 0
+    lenght_in_seconds = int(len(dbs) / db_measurement_chunks_per_second)
 
-    while i < len(data):
-        value = abs(data[i][0])
-        if value > trigger_threshold and before_silence:
-            #   if the signal is loud in the next 10 samples, this is a laughter.
-            if all(((abs(data[j][0]) > trigger_threshold) for j in range(i,i + focus_size*10, focus_size))):
-                laughter_times.append(i / samples_per_second)
-                i += (focus_size * 10)
-                before_silence = False
-        elif value < silence_threshold:
-            before_silence = True
-        i += focus_size
+    samples_mean = mean(dbs)
+    standard_deviation = std(dbs)
+    for (second, chunk) in enumerate(array_split(dbs, lenght_in_seconds)):
+        # each chunk represents 1 second of audio
+        minutes, seconds = int(second / 60), int(second % 60)
+        print("%02d:%02d - " % (minutes, seconds), end='')
+        for dB in chunk:
+            print("%.2f" % dB, end=' ')
+        if any(dB > samples_mean + standard_deviation for dB in chunk):
+            print("LOL")
+        print("")
+    return [] # TODO count laughs
 
-    return laughter_times
+
+def is_a_peak(dbs, i):
+    m = 10
+
+    for dt in range(2,20):
+        i_mean = mean(dbs[i:i+dt])
+        left_mean = mean(dbs[i-dt:i])
+        right_mean = mean(dbs[i+dt:i+2*dt])
+        if i_mean - left_mean > m and i_mean - right_mean > m:
+            print("LOL")
 
 
 def verify_result(laughter_times):
