@@ -2,10 +2,11 @@ import argparse
 from numpy import mean, array_split, array, median, percentile, std
 from math import sqrt
 from scipy.io.wavfile import read
+from collections import Counter
 
 from corpus_creation.utils.utils import log10wrapper
 
-db_measurement_chunks_per_second = 5            # chunks (to measure dB of) per second.
+db_measurement_chunks_per_second = 10           # chunks (to measure dB of) per second.
 minimum_laughs = 80                             # if extracted less than this, something is wrong.
 
 
@@ -33,35 +34,102 @@ def get_audio_dbs(audio_file):
     return dbs
 
 
+def get_laughter_times_deprecated(dbs):
+    laughter_times = []
+    silence_threshold, laughter_threshold = find_thresholds(dbs)
+
+    min_laugh_length = int(db_measurement_chunks_per_second / 3)
+    i = 0
+    while i < len(dbs):
+        laugh_length = 0
+        try:
+            if all(dB < silence_threshold for dB in dbs[i-min_laugh_length:i]):
+                silence_before = True
+            else:
+                silence_before = False
+
+            while silence_before and dbs[i] > laughter_threshold:
+                laugh_length += 1
+                i += 1
+                if laugh_length == min_laugh_length:
+                    laughter_times.append(i / db_measurement_chunks_per_second)
+
+                    #TODO remove this (it's for debugging)
+                    total_seconds = i / db_measurement_chunks_per_second
+                    minutes, seconds = int(total_seconds / 60), total_seconds % 60
+                    print("%02d:%.2f LOL" % (minutes, seconds))
+        except IndexError:
+            pass
+        i += 1
+    return laughter_times
+
+
+def find_thresholds(dbs):
+    """
+    :param dbs: a list of the dB levels of the episode's audio
+    :return: the mode (most frequent volume range) of the dbs list.
+    """
+    counts = Counter()
+    for dB in dbs:
+        counts[int(dB)] += 1
+
+    counts_list = [counts[k] for k in range(int(max(dbs)))]
+
+    # find mode in a interval of 5 dB
+    mode_interval = 15
+    mode = {'left_bound': 0, 'right_bound': 0, 'num_of_samples': 0}
+    for i in range(int(len(counts_list)) - mode_interval):
+        num_of_samples_in_interval = sum(counts_list[i:i+mode_interval])
+        if num_of_samples_in_interval > mode['num_of_samples']:
+            mode['left_bound'] = i
+            mode['right_bound'] = i + mode_interval
+            mode['num_of_samples'] = num_of_samples_in_interval
+    return mode['left_bound'], mode['right_bound']
+
+
 def get_laughter_times(dbs):
     """
     :return: an array of the laugh timestamps in seconds.
     """
     lenght_in_seconds = int(len(dbs) / db_measurement_chunks_per_second)
 
-    samples_mean = mean(dbs)
-    standard_deviation = std(dbs)
-    for (second, chunk) in enumerate(array_split(dbs, lenght_in_seconds)):
-        # each chunk represents 1 second of audio
-        minutes, seconds = int(second / 60), int(second % 60)
-        print("%02d:%02d - " % (minutes, seconds), end='')
-        for dB in chunk:
-            print("%.2f" % dB, end=' ')
-        if any(dB > samples_mean + standard_deviation for dB in chunk):
-            print("LOL")
-        print("")
-    return [] # TODO count laughs
+    i = 0
+    while i < len(dbs):
+        dt, m = is_a_peak(dbs, i)
+        if dt:
+            total_seconds = i/db_measurement_chunks_per_second
+            minutes, seconds = int(total_seconds / 60), total_seconds % 60
+            laugh_length = dt / db_measurement_chunks_per_second
+            print("%02d:%.2f LOL (length %.2f seconds, m: %.2f)" % (minutes, seconds, laugh_length, m))
+            i += dt
+        else:
+            i += 1
 
 
 def is_a_peak(dbs, i):
-    m = 10
+    m = 10          # in dB
+    silence = 3
+    dt_range_left, dt_range_right = 2, 50
 
-    for dt in range(2,20):
+    # TODO find max m
+    LEFT_D = []
+    RIGHT_D = []
+    for dt in range(dt_range_left, dt_range_right, -1):
         i_mean = mean(dbs[i:i+dt])
-        left_mean = mean(dbs[i-dt:i])
-        right_mean = mean(dbs[i+dt:i+2*dt])
-        if i_mean - left_mean > m and i_mean - right_mean > m:
-            print("LOL")
+        left_mean = mean(dbs[i-silence:i])
+        right_mean = mean(dbs[i+dt:i+dt+silence])
+        # LEFT_D.append(min(i_mean - left for left in dbs[i-silence:i]))
+        # RIGHT_D.append(min(i_mean - right for right in dbs[i+dt:i+dt+silence]))
+        LEFT_D.append(i_mean - left_mean)
+        RIGHT_D.append(i_mean - right_mean)
+
+    min_d = [min(l, r) for l, r in zip(LEFT_D, RIGHT_D)]
+    max_m = max(m for m in min_d)
+    max_dt = min_d.index(max_m) + dt_range_left
+    if max_m > m:
+        return max_dt, max_m
+    else:
+        return 0, 0
 
 
 def verify_result(laughter_times):
