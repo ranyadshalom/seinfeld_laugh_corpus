@@ -91,45 +91,35 @@ def get_laughter_times(dbs):
     """
     :return: an array of the laugh timestamps in seconds.
     """
-    lenght_in_seconds = int(len(dbs) / db_measurement_chunks_per_second)
-
-    i = 0
-    while i < len(dbs):
-        dt, m = is_a_peak(dbs, i)
-        if dt:
+    laughter_times = []
+    for i in range(len(dbs)):
+        s, fullness, m, result = is_a_peak(dbs, i)
+        if result:
             total_seconds = i/db_measurement_chunks_per_second
             minutes, seconds = int(total_seconds / 60), total_seconds % 60
-            laugh_length = dt / db_measurement_chunks_per_second
-            print("%02d:%.2f LOL (length %.2f seconds, m: %.2f)" % (minutes, seconds, laugh_length, m))
-            i += dt
-        else:
-            i += 1
+            print("%02d:%.1f LOL (std:%.3f, fullness:%.3f, mean volume: %.3f)" % (minutes, seconds, s, fullness, m))
+            laughter_times.append(total_seconds)
+    return laughter_times
 
 
 def is_a_peak(dbs, i):
-    m = 10          # in dB
-    silence = 3
-    dt_range_left, dt_range_right = 2, 50
+    rng = 3 * db_measurement_chunks_per_second
+    silence_threshold = 62
 
-    # TODO find max m
-    LEFT_D = []
-    RIGHT_D = []
-    for dt in range(dt_range_left, dt_range_right, -1):
-        i_mean = mean(dbs[i:i+dt])
-        left_mean = mean(dbs[i-silence:i])
-        right_mean = mean(dbs[i+dt:i+dt+silence])
-        # LEFT_D.append(min(i_mean - left for left in dbs[i-silence:i]))
-        # RIGHT_D.append(min(i_mean - right for right in dbs[i+dt:i+dt+silence]))
-        LEFT_D.append(i_mean - left_mean)
-        RIGHT_D.append(i_mean - right_mean)
+    try:
+        if all(dB <= dbs[i] for dB in dbs[i:i+rng]) and all(dbs[i] >= dB for dB in dbs[i-rng:i]):
+            # is a peak
+            if dbs[i] > silence_threshold and mean(dbs[i-rng:i+rng]) > 35:
+                # the peak is not too quiet
+                fullness = mean(dbs[i-rng:i+rng]) / dbs[i]
+                # not a 'click' in the recording or a very short sound
+                # TODO std bigger than 16 is a good indication for a FP
+                return std(dbs[i-rng:i+rng]), fullness, mean(dbs[i-rng:i+rng]), True
+    except IndexError:
+        return None, None, None, None
+    return None, None, None, None
 
-    min_d = [min(l, r) for l, r in zip(LEFT_D, RIGHT_D)]
-    max_m = max(m for m in min_d)
-    max_dt = min_d.index(max_m) + dt_range_left
-    if max_m > m:
-        return max_dt, max_m
-    else:
-        return 0, 0
+
 
 
 def verify_result(laughter_times):
