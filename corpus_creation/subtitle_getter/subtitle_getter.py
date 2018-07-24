@@ -69,7 +69,7 @@ def fetch_subtitles_from_opensubtitles(episode_video_path, dbs, output):
                                              'season': se,
                                              'sublanguageid': 'eng'}])
         except Exception as e:
-            print("Error getting search results from 'opensubtitles'. retrying in %d seconds...")
+            print("Error getting search results from 'opensubtitles'. retrying in %d seconds..." % retry)
             sleep(retry)
             retry *= 2
         else:

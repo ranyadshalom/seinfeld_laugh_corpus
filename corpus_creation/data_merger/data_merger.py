@@ -21,12 +21,14 @@ from collections import defaultdict
 import os
 import sys
 
+Subtitle = namedtuple('Subtitle', ["txt", "start", "end"])   # text (dialog), start (in seconds), end (in seconds)
+Result = namedtuple('Result', ["k", "score"])   # an object that contains the result of the calculations from
+                                                # the dynamic programming algorithm
+laugh_times_margin = 0.5    # the estimated time it takes the audience to laugh after a joke is delivered
+
 
 def run(screenplay_path, srt_path, laugh_track_path, output_path):
-    global Subtitle, Result, match
-    Subtitle = namedtuple('Subtitle', ["txt", "start", "end"])   # text (dialog), start (in seconds), end (in seconds)
-    Result = namedtuple('Result', ["k", "score"])   # an object that contains the result of the calculations from
-                                                    #  the dynamic programming algorithm
+    global match
     match = defaultdict(dict)
     match[tuple()] = defaultdict(lambda: Result(k=0, score=0))
 
@@ -41,7 +43,7 @@ def write_to_file(aligned_subs, laugh_times, output):
         for i, line in enumerate(aligned_subs):
             if isinstance(line, Subtitle):
                 f.write("%.3f\n" % line.start)
-                f.write("%s\n" % (line.txt))
+                f.write("%s\n" % line.txt.strip())
                 f.write("%.3f\n" % line.end)
                 k = 1
                 try:
@@ -51,7 +53,8 @@ def write_to_file(aligned_subs, laugh_times, output):
                 except IndexError:
                     next_sub_start_time = sys.float_info.max
 
-                while laugh_times and line.start+0.5 <= laugh_times[0] <= next_sub_start_time+0.5:
+                while laugh_times \
+                        and line.start+laugh_times_margin <= laugh_times[0] <= next_sub_start_time+laugh_times_margin:
                     # +0.5 because it takes the audience a moment to understand the joke
                     f.write("%.3f\n" % laugh_times[0])
                     f.write("**LOL**\n")
@@ -71,7 +74,7 @@ def remove_illegal_laugh_times(laugh_times, aligned_subs):
     while not isinstance(aligned_subs[i], Subtitle):
         i += 1
 
-    while laugh_times[0] < aligned_subs[i].start + 0.5:
+    while laugh_times[0] < aligned_subs[i].start + laugh_times_margin:
         laugh_times = laugh_times[1:]
     return laugh_times
 
@@ -87,9 +90,14 @@ def merge(screenplay_path, srt_path):
     screenplay_parsed = parse_screenplay(screenplay_path)
     screenplay_parsed = remove_characters_without_dialog(screenplay_parsed)
     subs = parse_subtitles(srt_path)
+
+    # pre-process (replace all text with BOW)
+    screenplay_bow = [(s[0], get_dialog_bow(s[1])) if s[0] == 'dialog' else s for s in screenplay_parsed]
+    dialog_lines_bow = [line[1] for line in screenplay_bow if line[0] == 'dialog']
+    subs_bow = [Subtitle(txt=get_sub_bow(sub.txt), start=sub.start, end=sub.end) for sub in subs]
+
     # process data
-    dialog_lines = [line[1] for line in screenplay_parsed if line[0]=='dialog']
-    delimiters = get_optimal_match(dialog_lines, subs)
+    delimiters = get_optimal_match(dialog_lines_bow, subs_bow)
     aligned_subs = align_subtitles_with_screenplay(subs, screenplay_parsed, delimiters)
 
     return aligned_subs
@@ -215,27 +223,42 @@ def get_max_k(D, S):
     return Result(k=max_k, score=max_score)
 
 
-def get_score(dialog, subs):
+def get_score(words_from_dialog, subs):
     """
-    :param subs: A list containing the substitles we try to match to this dialog line.
-    :param dialog:  A dialog line (i.e. a character's dialog block from the screenplay).
+    :param subs: A list containing the substitles we try to match to this dialog line. sub.txt has to be BOW.
+    :param words_from_dialog:  A dialog line (i.e. a character's dialog block from the screenplay) in BOW representation.
     :return: the matching's score.
     """
     # will run untill match cannot improve anymore
-    txt_from_subtitles = "\n".join(sub.txt for sub in subs)
-
-    txt_from_subtitles = re.sub(r'\\','',txt_from_subtitles) # remove escape characters from subtitles.
-    txt_from_dialog = re.sub(r'[\`\’]', '\'', dialog) # allow only ' character as a dash
-
-    # remove punctuation
-    words_from_subtitles = set(re.split(r'[\s\,\.\?\!\;\:"]', txt_from_subtitles.lower()))
-    words_from_dialog = set(re.split(r'[\s\,\.\?\!\;\:"]', txt_from_dialog.lower()))
+    try:
+        words_from_subtitles = frozenset.union(*(sub.txt for sub in subs))
+    except TypeError:
+        # no subtitles
+        words_from_subtitles = frozenset()
 
     # calculate BOW intersection and union
     intersection = len(words_from_dialog & words_from_subtitles)
     union = len(words_from_dialog | words_from_subtitles)
 
     return intersection / union
+
+
+def get_sub_bow(sub_txt):
+    sub_txt = re.sub(r'\\', '', sub_txt)     # remove escape characters from subtitles.
+    return get_bow(sub_txt)
+
+
+def get_dialog_bow(dialog_txt):
+    dialog_txt = re.sub(r'[\`\’]', '\'', dialog_txt)     # allow only ' character as a dash
+    return get_bow(dialog_txt)
+
+
+def get_bow(str):
+    """
+    :param str: A string
+    :return: A Bag of Words representation of the string.
+    """
+    return frozenset(re.split(r'[\s\,\.\?\!\;\:"]', str.lower()))
 
 
 def align_subtitles_with_screenplay(subs, screenplay, delimiters):

@@ -34,59 +34,6 @@ def get_audio_dbs(audio_file):
     return dbs
 
 
-def get_laughter_times_deprecated(dbs):
-    laughter_times = []
-    silence_threshold, laughter_threshold = find_thresholds(dbs)
-
-    min_laugh_length = int(db_measurement_chunks_per_second / 3)
-    i = 0
-    while i < len(dbs):
-        laugh_length = 0
-        try:
-            if all(dB < silence_threshold for dB in dbs[i-min_laugh_length:i]):
-                silence_before = True
-            else:
-                silence_before = False
-
-            while silence_before and dbs[i] > laughter_threshold:
-                laugh_length += 1
-                i += 1
-                if laugh_length == min_laugh_length:
-                    laughter_times.append(i / db_measurement_chunks_per_second)
-
-                    #TODO remove this (it's for debugging)
-                    total_seconds = i / db_measurement_chunks_per_second
-                    minutes, seconds = int(total_seconds / 60), total_seconds % 60
-                    print("%02d:%.2f LOL" % (minutes, seconds))
-        except IndexError:
-            pass
-        i += 1
-    return laughter_times
-
-
-def find_thresholds(dbs):
-    """
-    :param dbs: a list of the dB levels of the episode's audio
-    :return: the mode (most frequent volume range) of the dbs list.
-    """
-    counts = Counter()
-    for dB in dbs:
-        counts[int(dB)] += 1
-
-    counts_list = [counts[k] for k in range(int(max(dbs)))]
-
-    # find mode in a interval of 5 dB
-    mode_interval = 15
-    mode = {'left_bound': 0, 'right_bound': 0, 'num_of_samples': 0}
-    for i in range(int(len(counts_list)) - mode_interval):
-        num_of_samples_in_interval = sum(counts_list[i:i+mode_interval])
-        if num_of_samples_in_interval > mode['num_of_samples']:
-            mode['left_bound'] = i
-            mode['right_bound'] = i + mode_interval
-            mode['num_of_samples'] = num_of_samples_in_interval
-    return mode['left_bound'], mode['right_bound']
-
-
 def get_laughter_times(dbs):
     """
     :return: an array of the laugh timestamps in seconds.
@@ -96,8 +43,8 @@ def get_laughter_times(dbs):
         s, fullness, m, result = is_a_peak(dbs, i)
         if result:
             total_seconds = i/db_measurement_chunks_per_second
-            minutes, seconds = int(total_seconds / 60), total_seconds % 60
-            print("%02d:%.1f LOL (std:%.3f, fullness:%.3f, mean volume: %.3f)" % (minutes, seconds, s, fullness, m))
+            # minutes, seconds = int(total_seconds / 60), total_seconds % 60
+            # print("%02d:%.1f LOL (std:%.3f, fullness:%.3f, mean volume: %.3f)" % (minutes, seconds, s, fullness, m))
             laughter_times.append(total_seconds)
     return laughter_times
 
@@ -120,13 +67,10 @@ def is_a_peak(dbs, i):
     return None, None, None, None
 
 
-
-
 def verify_result(laughter_times):
     if len(laughter_times) < minimum_laughs:
         raise Exception("It seems like audience recording is not in Stereo (Only %d laughs were extracted)."
                         % len(laughter_times))
-    # TODO verify spillage (the average silence levels? First see if this is even a problem.)
 
 
 def write_to_file(laughter_times, output):
