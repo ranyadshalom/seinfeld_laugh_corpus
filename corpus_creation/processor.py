@@ -81,8 +81,8 @@ class Processor:
         self.temp_files['laugh_track'] = self.filepath.rsplit(".", 1)[0] + '_laugh.wav'
 
         try:
-            exit_code = subprocess.call([os.path.join(SOX_PATH, 'sox.exe'), '--norm', self.temp_files['audio'],
-                                         self.temp_files['laugh_track'], "oops"], stdout=subprocess.DEVNULL)
+            exit_code = subprocess.call([os.path.join(SOX_PATH, 'sox.exe'), self.temp_files['audio'],
+                                         self.temp_files['laugh_track'], "oops", "gain", "-n"], stdout=subprocess.DEVNULL)
             if exit_code != 0:
                 raise Exception("sox exit code: %d." % exit_code)
         except Exception as e:

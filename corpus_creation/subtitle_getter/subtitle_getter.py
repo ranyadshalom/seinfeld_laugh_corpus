@@ -14,9 +14,10 @@ from pythonopensubtitles.opensubtitles import OpenSubtitles
 from corpus_creation.config import opensubtitles_credentials, FFMPEG_PATH
 from corpus_creation.utils.utils import log10wrapper
 
-peak_detection_threshold = 100            # the amplitude difference between 2 sample points to be considered as a peak
-db_measurement_chunks_per_second = 20     # chunks (to measure dB of) per second.
-ost_retry = 60                            # number of seconds to wait before retrying to connect to opensubtitles.
+peak_detection_threshold = 100          # the amplitude difference between 2 sample points to be considered as a peak
+db_measurement_chunks_per_second = 20   # chunks (to measure dB of) per second.
+ost_retry = 60                          # number of seconds to wait before retrying to connect to opensubtitles.
+sync_threshold = 0.05                   # A float between 0 to 1. The higher the number, the more in-sync the subtitles.
 
 ost = OpenSubtitles()
 try:
@@ -56,8 +57,32 @@ def extract_subtitles_from_mkv(episode_video, output):
 
 
 def fetch_subtitles_from_opensubtitles(episode_video_path, dbs, output):
+    max_results = 5
+    results = get_opensubtitles_search_results(episode_video_path)
+    best_result = {'sync_measure': 0}
+
+    for result in results[:max_results]:
+        try:
+            download_subtitle(result, output)
+            print("Checking if subtitle '%s' is in sync..." % result['SubFileName'])
+            subs = pysrt.open(output)
+            result['sync_measure'] = get_sync_measure(subs, dbs)
+            if result['sync_measure'] > best_result['sync_measure'] and has_enough_dashes(subs):
+                best_result = result
+        except Exception as e:
+            print("ERROR downloading subtitle '%s': %s" % (result['SubFileName'], str(e)))
+            pass
+
+    if best_result['sync_measure'] > sync_threshold:
+        print("Downloading best synced subtitle...")
+        download_subtitle(best_result, output)
+        return
+
+    raise Exception("Out of %d opensubtitles results, none of them are valid!" % len(results[:max_results]))
+
+
+def get_opensubtitles_search_results(episode_video_path):
     episode_video = ntpath.basename(episode_video_path)
-    max_retries = 6
     retry = 60
     # downloading code
     m = re.findall(r'\d+', episode_video)
@@ -73,27 +98,26 @@ def fetch_subtitles_from_opensubtitles(episode_video_path, dbs, output):
             sleep(retry)
             retry *= 2
         else:
-            break
-
-    for result in results[:max_retries]:
-        try:
-            download_subtitle(result, output)
-            print("Checking if subtitle '%s' is in sync..." % result['SubFileName'])
-            if is_valid(output, dbs):
-                print("Success! Subtitle are valid.")
-                return
-        except Exception as e:
-            print("ERROR downloading subtitle '%s': %s" % (result['SubFileName'], str(e)))
-            pass
-
-    raise Exception("Out of %d opensubtitles results, none of them are valid!" % len(results[:max_retries]))
+            return results
 
 
 def download_subtitle(result, output):
+    retry = 0
+    interval = 60
+
     url = result['SubDownloadLink']
-    res = requests.get(url)
-    if res.status_code != 200:
-        raise Exception("server returned %d: %s" % (res.status_code, res.reason))
+    while True:
+        res = requests.get(url)
+        if res.status_code != 200:
+            if retry < 3:
+                print("Server returned %d: %s. Retrying in %d seconds..." % (res.status_code, res.reason, interval))
+                retry += 1
+                sleep(retry)
+                retry *= 2
+            else:
+                raise Exception("ERROR: server returned %d: %s" % (res.status_code, res.reason))
+        else:
+            break
     content = gzip.decompress(res.content)
     with open(output, 'wb') as f:
         f.write(content)
@@ -111,7 +135,7 @@ def is_valid(subtitles, dbs):
     if not has_enough_dashes(subs):
         print("Subtitles don't have enough dashes. Dropping them.")
         return False
-    if not is_in_sync(subs, dbs):
+    if get_sync_measure(subs, dbs) < sync_threshold:
         print("Subtitles aren't in sync")
         return False
     return True
@@ -136,14 +160,13 @@ def has_enough_dashes(subs):
     return dashes >= min_dash_threshold
 
 
-def is_in_sync(subs, dbs):
+def get_sync_measure(subs, dbs):
     """
     Checks if the subtitles match the audio.
     :param subs: a list of pysrt Subtitles.
     :param dbs: an array of the audio's dB levels.
     :return: False if not in sync OR 'subtitles' file doesn't exist.
     """
-    sync_threshold = 0.05   # percent of subtitles to have audio peaks for the subtitle file to be considered in sync
     # count how many subtitle starting times match actual peaks in the audio.
     peaks = 0
     for sub in subs:
@@ -153,7 +176,7 @@ def is_in_sync(subs, dbs):
 
     sync_measure = peaks / len(subs)
     print("subtitle/audio sync measure is: %.2f" % sync_measure)
-    return True if sync_measure > sync_threshold else False
+    return sync_measure
 
 
 def get_audio_dbs(audio_file):

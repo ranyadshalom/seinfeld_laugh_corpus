@@ -7,7 +7,7 @@ from collections import Counter
 from corpus_creation.utils.utils import log10wrapper
 
 db_measurement_chunks_per_second = 10           # chunks (to measure dB of) per second.
-minimum_laughs = 80                             # if extracted less than this, something is wrong.
+minimum_laughs = 85                             # if extracted less than this, something is wrong.
 
 
 def run(input, output):
@@ -38,33 +38,34 @@ def get_laughter_times(dbs):
     """
     :return: an array of the laugh timestamps in seconds.
     """
+    silence_threshold = mean(dbs) - std(dbs)
+
     laughter_times = []
     for i in range(len(dbs)):
-        s, fullness, m, result = is_a_peak(dbs, i)
+        s, fullness, m, result, mm = is_a_peak(dbs, i, silence_threshold)
         if result:
             total_seconds = i/db_measurement_chunks_per_second
             # minutes, seconds = int(total_seconds / 60), total_seconds % 60
-            # print("%02d:%.1f LOL (std:%.3f, fullness:%.3f, mean volume: %.3f)" % (minutes, seconds, s, fullness, m))
+            # print("%02d:%.1f LOL (std:%.3f, peak:%.3f, mean volume: %.3f, mean_without_peak: %.3f)" % (minutes, seconds, s, fullness, m, mm))
             laughter_times.append(total_seconds)
     return laughter_times
 
 
-def is_a_peak(dbs, i):
+def is_a_peak(dbs, i, silence_threshold):
     rng = 3 * db_measurement_chunks_per_second
-    silence_threshold = 62
 
     try:
         if all(dB <= dbs[i] for dB in dbs[i:i+rng]) and all(dbs[i] >= dB for dB in dbs[i-rng:i]):
             # is a peak
-            if dbs[i] > silence_threshold and mean(dbs[i-rng:i+rng]) > 35:
-                # the peak is not too quiet
-                fullness = mean(dbs[i-rng:i+rng]) / dbs[i]
-                # not a 'click' in the recording or a very short sound
-                # TODO std bigger than 16 is a good indication for a FP
-                return std(dbs[i-rng:i+rng]), fullness, mean(dbs[i-rng:i+rng]), True
+            if mean(dbs[i-rng:i+rng]) > silence_threshold:
+                std_of_interval = std(dbs[i-rng:i+rng])
+                mean_of_interval = mean(dbs[i-rng:i+rng])
+                if std_of_interval < mean_of_interval:
+                    # usually when the standard deviation of the interval is bigger than the mean, it is a FP
+                    return std_of_interval, dbs[i], mean_of_interval, True, mean(dbs[i-rng:i] + dbs[i+1:i + rng])
     except IndexError:
-        return None, None, None, None
-    return None, None, None, None
+        return None, None, None, None, None
+    return None, None, None, None, None
 
 
 def verify_result(laughter_times):
