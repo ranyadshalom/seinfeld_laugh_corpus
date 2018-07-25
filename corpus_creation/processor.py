@@ -9,7 +9,7 @@ from laugh_extraction import extract_laughter_times
 from screenplay_downloader import screenplay_downloader
 from screenplay_formatter import screenplay_parser
 from data_merger import data_merger
-from subtitle_getter import subtitle_getter
+#from subtitle_getter import subtitle_getter
 from subtitle_getter.subtitle_getter import SubtitlesNotInSyncException
 from config import FFMPEG_PATH, SOX_PATH
 
@@ -38,6 +38,7 @@ class Processor:
                 return
             print("Processing '%s'..." % self.filename)
             self._extract_audio()
+            self._normalize_audio()
             self._extract_laugh_track()
             self._extract_laughter_times()
             self._get_subtitles()
@@ -76,13 +77,26 @@ class Processor:
             del self.temp_files['audio']
             raise Exception("Make sure you have a working version of ffmpeg in the external_tools folder.\n%s" % str(e))
 
+    def _normalize_audio(self):
+        print("Normalizing audio...")
+        # audio file name is the same as the video's but with .wav extension
+        self.temp_files['norm_audio'] = self.filepath.rsplit(".", 1)[0] + '_norm.wav'
+        try:
+            exit_code = subprocess.call([os.path.join(SOX_PATH, 'sox.exe'), self.temp_files['audio'],
+                                         self.temp_files['norm_audio'], "gain", "-n"], stdout=subprocess.DEVNULL)
+            if exit_code != 0:
+                raise Exception("sox exit code: %d. Could not normalize audio." % exit_code)
+        except Exception as e:
+            del self.temp_files['norm_audio']
+            raise Exception("Make sure you have a working version of sox in the external_tools folder.\n%s" % str(e))
+
     def _extract_laugh_track(self):
         print("Extracting laugh track...")
         self.temp_files['laugh_track'] = self.filepath.rsplit(".", 1)[0] + '_laugh.wav'
 
         try:
-            exit_code = subprocess.call([os.path.join(SOX_PATH, 'sox.exe'), self.temp_files['audio'],
-                                         self.temp_files['laugh_track'], "oops", "gain", "-n"], stdout=subprocess.DEVNULL)
+            exit_code = subprocess.call([os.path.join(SOX_PATH, 'sox.exe'), self.temp_files['norm_audio'],
+                                         self.temp_files['laugh_track'], "oops"], stdout=subprocess.DEVNULL)
             if exit_code != 0:
                 raise Exception("sox exit code: %d." % exit_code)
         except Exception as e:

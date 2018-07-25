@@ -170,7 +170,6 @@ def get_sync_measure(subs, dbs):
     # count how many subtitle starting times match actual peaks in the audio.
     peaks = 0
     for sub in subs:
-        #print(sub.text)
         if is_a_peak((sub.start.ordinal / 1000), dbs):
             peaks += 1
 
@@ -190,9 +189,11 @@ def get_audio_dbs(audio_file):
     numchunks = int((len(wavdata) / samples_per_second) * db_measurement_chunks_per_second)
     chunks = array_split(wavdata, numchunks)
     chunks = [array(chunk, dtype='int64') for chunk in chunks]      # to prevent integer overflow
+
+    # This dB calculation is wrong (chunks should be divided by max_int16) but I already wrote the rest
+    # of the code using these results and it works...
     dbs = [20*log10wrapper( sqrt(mean(chunk**2)) ) for chunk in chunks]     # list of dB values for the chunks
 
-    # TODO normalize audio
     return dbs
 
 
@@ -221,8 +222,6 @@ def is_a_peak(sub_time, dbs):
         if dbs[chunk_i + i] > silence_threshold and possible_speech:
             peak = True
     return peak
-    # print("")
-
 
 
 class SubtitlesNotInSyncException(Exception):

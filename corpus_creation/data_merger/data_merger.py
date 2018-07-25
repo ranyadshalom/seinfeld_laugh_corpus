@@ -24,7 +24,7 @@ import sys
 Subtitle = namedtuple('Subtitle', ["txt", "start", "end"])   # text (dialog), start (in seconds), end (in seconds)
 Result = namedtuple('Result', ["k", "score"])   # an object that contains the result of the calculations from
                                                 # the dynamic programming algorithm
-laugh_times_margin = 0    # the estimated time it takes the audience to laugh after a joke is delivered
+laugh_times_margin = 0.6    # the estimated time it takes the audience to laugh after a joke is delivered
 
 
 def run(screenplay_path, srt_path, laugh_track_path, output_path):

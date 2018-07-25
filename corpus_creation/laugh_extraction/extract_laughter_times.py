@@ -8,14 +8,16 @@ from corpus_creation.utils.utils import log10wrapper
 Laugh = namedtuple('Laugh', ['time', 'vol'])
 db_measurement_chunks_per_second = 10           # chunks (to measure dB of) per second.
 minimum_laughs = 85                             # if extracted less than this, something is wrong.
+minimum_laughter_dB = -44                       # if the volume of the laughters is less than this value, disqualify
+minimum_standard_devation = 11                  # dB of the laugh track should have standard devation above this values.
 
 
 def run(input, output):
     dbs = get_audio_dbs(input)
     laughters = get_laughters(dbs)
+    verify_result(laughters, dbs)
 
     laughter_times = [l.time for l in laughters]
-    verify_result(laughter_times)
     write_to_file(laughter_times, output)
 
 
@@ -40,14 +42,15 @@ def get_laughters(dbs):
     :return: an array of the laugh timestamps in seconds.
     """
     silence_threshold = mean(dbs)
+    m , s = median(dbs), std(dbs)
 
     laughters = []
     for i in range(len(dbs)):
         s, fullness, m, result = is_a_peak(dbs, i, silence_threshold)
         if result:
             total_seconds = i/db_measurement_chunks_per_second
-            # minutes, seconds = int(total_seconds / 60), total_seconds % 60
-            # print("%02d:%.1f LOL (std:%.3f, peak:%.3f, mean volume: %.3f" % (minutes, seconds, s, fullness, m))
+            minutes, seconds = int(total_seconds / 60), total_seconds % 60
+            print("%02d:%.1f LOL (std:%.3f, peak:%.3f, mean volume: %.3f" % (minutes, seconds, s, fullness, m))
             laughters.append(Laugh(time=total_seconds, vol=m))
     return laughters
 
@@ -59,16 +62,24 @@ def is_a_peak(dbs, i, silence_threshold):
     try:
         if all(dB <= dbs[i] for dB in dbs[i:i+detection_rng]) and all(dbs[i] >= dB for dB in dbs[i-detection_rng:i]):
             # is a peak
-            if mean(dbs[i-rng:i+rng]) > silence_threshold:
+            mean_of_interval = mean(dbs[i-vol_measurement_rng:i+vol_measurement_rng])
+            if mean_of_interval > silence_threshold:
                 std_of_interval = std(dbs[i-vol_measurement_rng:i+vol_measurement_rng])
-                mean_of_interval = mean(dbs[i-vol_measurement_rng:i+vol_measurement_rng])
                 return std_of_interval, dbs[i], mean_of_interval, True
     except IndexError:
         return None, None, None, None
     return None, None, None, None
 
 
-def verify_result(laughter_times):
+def verify_result(laughters, dbs):
+    l_m = mean([l. vol for l in laughters])
+    s = std(dbs)
+    if l_m < minimum_laughter_dB:
+        raise Exception("Laughter volume too low: %.3f. File may not be a proper laugh track." % l_m)
+    if s < minimum_standard_devation:
+        raise Exception("Standard deviation %.3f is too small (file does not have the shape of a laugh track)" % s)
+
+    laughter_times = [l.time for l in laughters]
     if len(laughter_times) < minimum_laughs:
         raise Exception("It seems like audience recording is not in Stereo (Only %d laughs were extracted)."
                         % len(laughter_times))
