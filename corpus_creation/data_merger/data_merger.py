@@ -118,6 +118,9 @@ def parse_screenplay(screenplay_path):
                 elif line.isupper():
                     result.append(['character_name', line]) # a character's name
                 else:
+                    if len(result) == 0:
+                        # The screenplay's initial dialog is usually Jerry's stand up.
+                        result.append(['character_name', 'JERRY\n'])
                     if result[-1][0] == 'dialog':
                         result[-1][1] += line
                     else:
@@ -144,7 +147,7 @@ def parse_subtitles(srt):
     for i, sub in enumerate(subs):
         if i and sub.text == subs[i-1].text:
             continue    # double subtitle
-        if re.search(r'\w+\.\w+', sub.text):
+        if re.search(r'\w{3,20}\.\w{2,20}', sub.text):
             print("Commercial spotted, subtitle '%s' removed." % sub.text)
             continue
         start, end = get_sub_time_in_seconds(sub.start), get_sub_time_in_seconds(sub.end)
