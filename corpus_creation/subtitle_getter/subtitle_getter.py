@@ -7,8 +7,7 @@ import ntpath
 import gzip
 from time import sleep
 from scipy.io.wavfile import read
-from numpy import mean, array_split, array
-from math import sqrt
+from numpy import mean, array_split, array, std, median, sqrt, isinf
 from pythonopensubtitles.opensubtitles import OpenSubtitles
 
 from corpus_creation.config import opensubtitles_credentials, FFMPEG_PATH
@@ -17,7 +16,7 @@ from corpus_creation.utils.utils import log10wrapper
 peak_detection_threshold = 100          # the amplitude difference between 2 sample points to be considered as a peak
 db_measurement_chunks_per_second = 20   # chunks (to measure dB of) per second.
 ost_retry = 60                          # number of seconds to wait before retrying to connect to opensubtitles.
-sync_threshold = 0.05                   # A float between 0 to 1. The higher the number, the more in-sync the subtitles.
+sync_threshold = 0.10                   # A float between 0 to 1. The higher the number, the more in-sync the subtitles.
 
 ost = OpenSubtitles()
 try:
@@ -65,7 +64,7 @@ def fetch_subtitles_from_opensubtitles(episode_video_path, dbs, output):
         try:
             download_subtitle(result, output)
             print("Checking if subtitle '%s' is in sync..." % result['SubFileName'])
-            subs = pysrt.open(output)
+            subs = pysrt.open(output, encoding='ansi ', error_handling='ignore')
             result['sync_measure'] = get_sync_measure(subs, dbs)
             if result['sync_measure'] > best_result['sync_measure'] and has_enough_dashes(subs):
                 best_result = result
@@ -112,8 +111,8 @@ def download_subtitle(result, output):
             if retry < 3:
                 print("Server returned %d: %s. Retrying in %d seconds..." % (res.status_code, res.reason, interval))
                 retry += 1
-                sleep(retry)
-                retry *= 2
+                sleep(interval)
+                interval *= 2
             else:
                 raise Exception("ERROR: server returned %d: %s" % (res.status_code, res.reason))
         else:
@@ -168,13 +167,18 @@ def get_sync_measure(subs, dbs):
     :return: False if not in sync OR 'subtitles' file doesn't exist.
     """
     # count how many subtitle starting times match actual peaks in the audio.
+    dbs_without_infs = [dB for dB in dbs if not isinf(dB)]
+    m, s = mean(dbs_without_infs), std(dbs_without_infs)
     peaks = 0
+    silences = 0
     for sub in subs:
-        if is_a_peak((sub.start.ordinal / 1000), dbs):
+        if is_a_peak((sub.start.ordinal / 1000), dbs, m, s):
             peaks += 1
+        if is_a_silence((sub.end.ordinal / 1000), dbs, m, s):
+            silences += 1
 
-    sync_measure = peaks / len(subs)
-    print("subtitle/audio sync measure is: %.2f" % sync_measure)
+    sync_measure = 0.6*(peaks / len(subs)) + 0.4*(silences / len(subs))
+    print("subtitle/audio sync measure is: %.4f" % sync_measure)
     return sync_measure
 
 
@@ -188,25 +192,27 @@ def get_audio_dbs(audio_file):
     # split audio to chunks to measure Db
     numchunks = int((len(wavdata) / samples_per_second) * db_measurement_chunks_per_second)
     chunks = array_split(wavdata, numchunks)
-    chunks = [array(chunk, dtype='int64') for chunk in chunks]      # to prevent integer overflow
-
-    # This dB calculation is wrong (chunks should be divided by max_int16) but I already wrote the rest
-    # of the code using these results and it works...
-    dbs = [20*log10wrapper( sqrt(mean(chunk**2)) ) for chunk in chunks]     # list of dB values for the chunks
+    chunks = [array(chunk, dtype='float64') for chunk in chunks]      # to prevent integer overflow
+    dbs = [20*log10wrapper( mean(sqrt((chunk / 32767)**2)) ) for chunk in chunks]     # list of dB values for the chunks
 
     return dbs
 
 
-def is_a_peak(sub_time, dbs):
+def is_a_peak(sub_time, dbs, m, s):
     """
     :param sub_time: in seconds
-    :param audio: numpy array of the audio samples
-    :param samples_per_second:
+    :param dbs: list of dB levels
+    :param m: mean
+    :param s: standard deviation
     :return: True if it's a peak, False otherwise.
     """
-    silence_threshold = 35
-    talking_threshold = 45
+    silence_threshold = m - s
+    talking_threshold = m + s
     chunk_i = int(sub_time * db_measurement_chunks_per_second)
+
+    # TODO remove this block
+    minutes, seconds = int(sub_time / 60), sub_time % 60
+    # print("%02d,%.2f:" % (minutes, seconds), end=' ')
 
     silence, possible_speech, peak = False, False, False
     for i in range(-2, 6):
@@ -221,8 +227,18 @@ def is_a_peak(sub_time, dbs):
             possible_speech = True
         if dbs[chunk_i + i] > silence_threshold and possible_speech:
             peak = True
+    # print("")
     return peak
 
+
+def is_a_silence(sub_time, dbs, m, s):
+    chunk_i = int(sub_time * db_measurement_chunks_per_second)
+    interval = int(db_measurement_chunks_per_second*0.2)
+    silence_threshold = m - s
+    if mean(dbs[chunk_i-int(interval/2):chunk_i+interval]) < silence_threshold:
+        return True
+    else:
+        return False
 
 class SubtitlesNotInSyncException(Exception):
     pass

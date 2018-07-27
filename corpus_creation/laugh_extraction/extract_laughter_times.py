@@ -1,5 +1,5 @@
 import argparse
-from numpy import mean, array_split, array, median, percentile, std, sqrt
+from numpy import mean, array_split, array, median, percentile, std, sqrt, isinf
 from scipy.io.wavfile import read
 from collections import Counter, namedtuple
 
@@ -41,16 +41,17 @@ def get_laughters(dbs):
     """
     :return: an array of the laugh timestamps in seconds.
     """
-    silence_threshold = mean(dbs)
-    m , s = median(dbs), std(dbs)
+    dbs_without_infs = [dB for dB in dbs if not isinf(dB)]
+    silence_threshold = mean(dbs_without_infs)
+    m , s = median(dbs), std(dbs_without_infs)
 
     laughters = []
     for i in range(len(dbs)):
         s, fullness, m, result = is_a_peak(dbs, i, silence_threshold)
         if result:
             total_seconds = i/db_measurement_chunks_per_second
-            minutes, seconds = int(total_seconds / 60), total_seconds % 60
-            print("%02d:%.1f LOL (std:%.3f, peak:%.3f, mean volume: %.3f" % (minutes, seconds, s, fullness, m))
+            #minutes, seconds = int(total_seconds / 60), total_seconds % 60
+            #print("%02d:%.1f LOL (std:%.3f, peak:%.3f, mean volume: %.3f" % (minutes, seconds, s, fullness, m))
             laughters.append(Laugh(time=total_seconds, vol=m))
     return laughters
 
