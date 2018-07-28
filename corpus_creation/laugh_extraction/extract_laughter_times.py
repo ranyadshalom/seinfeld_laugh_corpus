@@ -2,6 +2,10 @@ import argparse
 from numpy import mean, array_split, array, median, percentile, std, sqrt, isinf
 from scipy.io.wavfile import read
 from collections import Counter, namedtuple
+import sys
+
+sys.path.insert(0, '..')
+sys.path.insert(0, '.')
 
 from corpus_creation.utils.utils import log10wrapper
 

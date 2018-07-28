@@ -5,10 +5,14 @@ import os
 import subprocess
 import ntpath
 import gzip
+import sys
 from time import sleep
 from scipy.io.wavfile import read
 from numpy import mean, array_split, array, std, median, sqrt, isinf
 from pythonopensubtitles.opensubtitles import OpenSubtitles
+
+sys.path.insert(0, '..')
+sys.path.insert(0, '.')
 
 from corpus_creation.config import opensubtitles_credentials, FFMPEG_PATH
 from corpus_creation.utils.utils import log10wrapper
@@ -16,7 +20,7 @@ from corpus_creation.utils.utils import log10wrapper
 peak_detection_threshold = 100          # the amplitude difference between 2 sample points to be considered as a peak
 db_measurement_chunks_per_second = 20   # chunks (to measure dB of) per second.
 ost_retry = 60                          # number of seconds to wait before retrying to connect to opensubtitles.
-sync_threshold = 0.10                   # A float between 0 to 1. The higher the number, the more in-sync the subtitles.
+sync_threshold = 0.094                  # A float between 0 to 1. The higher the number, the more in-sync the subtitles.
 
 ost = OpenSubtitles()
 try:
