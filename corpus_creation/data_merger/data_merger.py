@@ -39,7 +39,7 @@ def run(screenplay_path, srt_path, laugh_track_path, output_path):
 
 
 def write_to_file(aligned_subs, laugh_times, output):
-    with open(output, 'w') as f:
+    with open(output, 'w', encoding='utf8', errors='ignore') as f:
         for i, line in enumerate(aligned_subs):
             if isinstance(line, Subtitle):
                 f.write("%.3f\n" % line.start)
@@ -119,6 +119,7 @@ def parse_screenplay(screenplay_path):
                     result.append(['character_name', line]) # a character's name
                 else:
                     if len(result) == 0:
+                        print("Warning: screenplay does not start with a character name. Assuming it is JERRY.")
                         # The screenplay's initial dialog is usually Jerry's stand up.
                         result.append(['character_name', 'JERRY\n'])
                     if result[-1][0] == 'dialog':
@@ -215,7 +216,7 @@ def get_max_k(D, S):
     WINDOW = 16
 
     max_score = 0
-    max_k = None
+    max_k = 0
 
     for k in range(min(WINDOW, len(S))):
         s = get_score(D[0], S[:k]) + match[ D[1:] ][ S[k:] ].score
