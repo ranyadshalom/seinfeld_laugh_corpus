@@ -24,7 +24,7 @@ class Screenplay:
         screenplay = Screenplay()
         screenplay.filename = file_path.rsplit('/',1)[-1]
 
-        with open(file_path) as f:
+        with open(file_path, encoding='utf8', errors='ignore') as f:
             lines = f.__iter__()
             for line in lines:
                 if line[0] == '#':
@@ -35,12 +35,15 @@ class Screenplay:
                     if '**LOL**' in txt:
                         screenplay.lines.append(Laugh(time=start))
                     else:
-                        end = lines.readline()
-                        try:
-                            end = float(end)
-                        except ValueError:
-                            txt += ('\n'+end)
-                            end = float(lines.readline())
+                        for i in range(3):
+                            # maximum 3 lines in one subtitle
+                            end = lines.readline()
+                            try:
+                                end = float(end)
+                            except ValueError:
+                                txt += ('\n'+end)
+                            else:
+                                break
                         screenplay.lines.append(Line(txt=txt.replace('\n', ' ').strip(),
                                                      start=start, end=end, character=current_character))
         return screenplay

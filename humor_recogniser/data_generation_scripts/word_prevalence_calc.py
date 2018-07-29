@@ -1,9 +1,12 @@
 from collections import Counter
 import argparse
 import re
+import sys
 
-from humor_recogniser_package.humor_recogniser import read_data
-from humor_recogniser_package.screenplay import Line
+sys.path.append("..")
+
+from ml_humor_recogniser import read_data
+from screenplay import Line
 
 
 def run(data, output):
