@@ -2,7 +2,10 @@ The Seinfeld Corpus
 ===================
 
 The Seinfeld Cotpus is a humor annotated corpus of 96 Seinfeld episodes
-form seasons 4-9. You can read about how we generated it in the project's `paper`_.
+form seasons 4-9. You can read about the methods we used to generate it in the project's `paper`_.
+
+The raw corpus can be found in the `'corpus'`_ directory of this repository.
+
 
 Installation
 ~~~~~~~~~~~~
@@ -23,8 +26,10 @@ On Python 3:
    >>> from the_seinfeld_corpus import corpus
    >>> seinfeld = corpus.get()
 
-   >>> print seinfeld[1][0]
+   >>> print(seinfeld[1][0])
    Line(character='JERRY', txt='Have you ever called someone and were  disappointed when they answered?', start=0.62, end=5.011)
+   >>> print(seinfeld[1][1])
+   Laugh(time=2.3)
 
 From the corpus:
 
@@ -88,3 +93,4 @@ More Information
 
 
 .. _paper: http://TODOpaper
+.. _corpus: https://github.com/ranyadshalom/the_seinfeld_corpus/tree/master/the_corpus
