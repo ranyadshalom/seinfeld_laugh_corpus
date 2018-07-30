@@ -1,7 +1,7 @@
 The Seinfeld Corpus
 ===================
 
-The Seinfeld Cotpus is a humor annotated corpus of 96 Seinfeld episodes
+The Seinfeld Corpus is a humor annotated corpus of 96 Seinfeld episodes
 form seasons 4-9. You can read about the methods we used to generate it in the project's `paper`_.
 
 The raw corpus can be found in the `'corpus'`_ directory of this repository.
@@ -93,4 +93,4 @@ More Information
 
 
 .. _paper: http://TODOpaper
-.. _corpus: https://github.com/ranyadshalom/the_seinfeld_corpus/tree/master/the_corpus
+.. _'corpus': https://github.com/ranyadshalom/the_seinfeld_corpus/tree/master/the_corpus
