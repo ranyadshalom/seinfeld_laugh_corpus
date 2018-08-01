@@ -2,9 +2,9 @@ The Seinfeld Corpus
 ===================
 
 The Seinfeld Corpus is a humor annotated corpus of 96 Seinfeld episodes
-form seasons 4-9. You can read about the methods we used to generate it in the project's `paper`_.
+from seasons 4-9. You can read about the methods we used to generate it in the project's `paper`_.
 
-The raw corpus can be found in the `'corpus'`_ directory of this repository.
+The raw corpus can be found in the `corpus`_ directory of this repository.
 
 
 Installation
@@ -19,13 +19,12 @@ On Python 3:
 Quick Start
 ~~~~~~~~~~~
 
-On Python 3:
-
 .. code:: python
 
    >>> from the_seinfeld_corpus import corpus
    >>> seinfeld = corpus.get()
 
+   >>> # first index is the episode number, second index is the line number.
    >>> print(seinfeld[1][0])
    Line(character='JERRY', txt='Have you ever called someone and were  disappointed when they answered?', start=0.62, end=5.011)
    >>> print(seinfeld[1][1])
@@ -93,4 +92,4 @@ More Information
 
 
 .. _paper: http://TODOpaper
-.. _'corpus': https://github.com/ranyadshalom/the_seinfeld_corpus/tree/master/the_corpus
+.. _corpus: https://github.com/ranyadshalom/the_seinfeld_corpus/tree/master/the_corpus
