@@ -1,14 +1,20 @@
 from collections import Counter
 from collections import defaultdict
+from functools import reduce
 import csv
+import nltk
+from nltk.stem.wordnet import WordNetLemmatizer
 
 
 from humor_recogniser.screenplay import Screenplay
 from humor_recogniser.ml_humor_recogniser import read_data
 from humor_recogniser.screenplay import Laugh, Line
 
+
 screenplays = read_data('../../the_corpus/')
 episodes_results = {}
+all_lines = []
+funny_lines = []
 
 # Count number of laughs and lines for character per episode.
 for screenplay in screenplays:
@@ -19,8 +25,10 @@ for screenplay in screenplays:
         if isinstance(line, Laugh):
             if isinstance(screenplay[i-1], Line):
                 laugh_counter[screenplay[i - 1].character] += 1
+                funny_lines.append(screenplay[i-1])
         elif isinstance(line, Line):
                 line_counter[line.character] += 1
+                all_lines.append(line)
     merged_sorted_list = [(character, line_counter[character], laugh_counter[character]) for character in line_counter.keys()]
     merged_sorted_list.sort(key=lambda t: t[1], reverse=True)
     for i, name_count_count in enumerate(merged_sorted_list):
@@ -28,6 +36,42 @@ for screenplay in screenplays:
         print("%d. %s: %d lines, %d laughs. Funniness: %.3f" % (i+1, name, line_count, laugh_count, laugh_count / line_count))
     episodes_results[screenplay.filename] = merged_sorted_list
     print("\n")
+
+# print funniness
+all_counts = reduce(lambda x, y: x + y, episodes_results.values())
+
+
+def sum_up_character_lines_and_laughs(character):
+    lines = sum(c[1] for c in all_counts if c[0] == character)
+    laughs = sum(c[2] for c in all_counts if c[0] == character)
+    return character, lines, laughs
+
+
+characters = set((character for character, _, _ in all_counts))
+aggregated_counts = map(sum_up_character_lines_and_laughs, characters)
+print("Total laughs/lines/funniness measures:")
+for character, lines, laughs in aggregated_counts:
+    if lines > 400:
+        print("%s,%d,%d,%.3f" % (character, lines, laughs, laughs/lines))
+
+
+##########################################################################
+
+# find trigger words
+all_lines_txt = [line.txt for line in all_lines]
+funny_lines_txt = [line.txt for line in funny_lines]
+lmtz = WordNetLemmatizer()
+all_words = [lmtz.lemmatize(word.lower()) for word in nltk.word_tokenize("\n".join(all_lines_txt))]
+funny_words = [lmtz.lemmatize(word.lower()) for word in nltk.word_tokenize("\n".join(funny_lines_txt))]
+all_words_dist = nltk.FreqDist(all_words)
+funny_words_dist = nltk.FreqDist(funny_words)
+
+word_funniness = {word: funny_words_dist[word] / all_words_dist[word] for word in set(all_words) if all_words_dist[word] > 100}
+word_funniness_sorted = [(word, funniness) for word, funniness in word_funniness.items()]
+word_funniness_sorted.sort(key=lambda x:x[1], reverse=True)
+print(word_funniness_sorted[:20])
+############################################################################
+
 
 with open('funniness_measures.csv', 'w') as csvfile:
     fieldnames = ['character'] + [s.filename for s in screenplays]
