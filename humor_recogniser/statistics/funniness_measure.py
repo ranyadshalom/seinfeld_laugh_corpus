@@ -4,6 +4,7 @@ from functools import reduce
 import csv
 import nltk
 from nltk.stem.wordnet import WordNetLemmatizer
+from numpy import mean
 
 
 from humor_recogniser.screenplay import Screenplay
@@ -56,22 +57,39 @@ for character, lines, laughs in aggregated_counts:
 
 
 ##########################################################################
-
 # find trigger words
+lmtz = WordNetLemmatizer()
+
+
+def find_trigger_words(all_lines_txt, funny_lines_txt):
+    all_words = [lmtz.lemmatize(word.lower()) for word in nltk.word_tokenize("\n".join(all_lines_txt))]
+    funny_words = [lmtz.lemmatize(word.lower()) for word in nltk.word_tokenize("\n".join(funny_lines_txt))]
+    all_words_dist = nltk.FreqDist(all_words)
+    funny_words_dist = nltk.FreqDist(funny_words)
+
+    all_words_mean = mean(list(all_words_dist.values()))
+    compute_funniness = lambda word: (funny_words_dist[word] / all_words_dist[word]) * min(all_words_dist[word]/all_words_mean, 1)
+    word_funniness = {word: compute_funniness(word) for word in set(all_words)}
+    word_funniness_sorted = [(word, funniness) for word, funniness in word_funniness.items()]
+    word_funniness_sorted.sort(key=lambda x:x[1], reverse=True)
+    print("word funniness:")
+    for word, funniness in word_funniness_sorted[:30]:
+        print("%s,%.3f" % (word, funniness))
+
+
 all_lines_txt = [line.txt for line in all_lines]
 funny_lines_txt = [line.txt for line in funny_lines]
-lmtz = WordNetLemmatizer()
-all_words = [lmtz.lemmatize(word.lower()) for word in nltk.word_tokenize("\n".join(all_lines_txt))]
-funny_words = [lmtz.lemmatize(word.lower()) for word in nltk.word_tokenize("\n".join(funny_lines_txt))]
-all_words_dist = nltk.FreqDist(all_words)
-funny_words_dist = nltk.FreqDist(funny_words)
-
-word_funniness = {word: funny_words_dist[word] / all_words_dist[word] for word in set(all_words) if all_words_dist[word] > 100}
-word_funniness_sorted = [(word, funniness) for word, funniness in word_funniness.items()]
-word_funniness_sorted.sort(key=lambda x:x[1], reverse=True)
-print(word_funniness_sorted[:20])
+find_trigger_words(all_lines_txt, funny_lines_txt)
 ############################################################################
 
+
+# trigger words for each character:
+characters = ["JERRY", "ELAINE", "GEORGE", "KRAMER"]
+for character in characters:
+    all_lines_txt = [line.txt for line in all_lines]
+    funny_lines_txt = [line.txt for line in funny_lines if line.character == character]
+    print("Trigger words for %s:" % character)
+    find_trigger_words(all_lines_txt, funny_lines_txt)
 
 with open('funniness_measures.csv', 'w') as csvfile:
     fieldnames = ['character'] + [s.filename for s in screenplays]
