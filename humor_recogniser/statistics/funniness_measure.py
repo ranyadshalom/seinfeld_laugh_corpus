@@ -5,6 +5,8 @@ import csv
 import nltk
 from nltk.stem.wordnet import WordNetLemmatizer
 from numpy import mean
+import numpy as np
+from sklearn.cluster import KMeans
 
 
 from humor_recogniser.screenplay import Screenplay
@@ -54,6 +56,27 @@ print("Total laughs/lines/funniness measures:")
 for character, lines, laughs in aggregated_counts:
     if lines > 400:
         print("%s,%d,%d,%.3f" % (character, lines, laughs, laughs/lines))
+###########################################################################
+
+
+# cluster funniness vectors for each episode
+def get_funniness_vector(args):
+    episode_name, characters_laughs = args
+    characters_laughs = {c[0]: c[1] for c in characters_laughs}
+    v = []
+    for character in ["JERRY", "GEORGE", "ELAINE", "KRAMER"]:
+        v.append(characters_laughs[character])
+    return (np.array(v), episode_name)
+
+vectors_and_episode_names = list(map(get_funniness_vector, episodes_results.items()))
+X = np.array([x for x, _ in vectors_and_episode_names])
+episode_names = [y for _, y in vectors_and_episode_names]
+
+kmeans = KMeans(n_clusters=4, random_state=0).fit(X)
+print("EPISODE CLUSTERING BY CHARACTER FUNNINESS VECTORS")
+for name, label in zip(episode_names, kmeans.labels_):
+    print("%s: %d" % (name,label))
+pass
 
 
 ##########################################################################
