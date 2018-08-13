@@ -1,3 +1,4 @@
+import re
 from collections import namedtuple
 
 Line = namedtuple('Line', ['character', 'txt', 'start', 'end'])
@@ -8,9 +9,12 @@ class Screenplay:
     """
     Represents a Seinfeld screenplay in the memory.
     """
-    def __init__(self):
+    def __init__(self, filename):
         self.lines = []
-        self.filename = 'N/A'
+        self.filename = filename
+        m = re.findall(r'\d+', filename)
+        self.season, self.episode = int(m[0]), int(m[1])
+        self.episode_name = filename[16:-7].replace('.', ' ')
 
     def __iter__(self):
         for line in self.lines:
@@ -19,10 +23,12 @@ class Screenplay:
     def __getitem__(self, item):
         return self.lines[item]
 
+
     @classmethod
     def from_file(cls, file_path):
-        screenplay = Screenplay()
-        screenplay.filename = file_path.rsplit('/',1)[-1]
+        filename = file_path.rsplit('/',1)[-1]
+        screenplay = Screenplay(filename)
+
 
         with open(file_path, encoding='utf8', errors='ignore') as f:
             lines = f.__iter__()
