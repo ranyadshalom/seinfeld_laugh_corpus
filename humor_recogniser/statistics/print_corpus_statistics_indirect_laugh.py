@@ -76,6 +76,12 @@ for character, lines, laughs in aggregated_counts:
         print("%s,%d,%d,%.3f" % (character, lines, laughs, laughs/lines))
 #############################################################################
 
+# cluster episodes indirect laughter
+# TODO
+
+############################################################################
+
+
 
 # count laugh distribution across the average episode
 laugh_dist = Counter()

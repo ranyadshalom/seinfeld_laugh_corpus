@@ -8,11 +8,11 @@ They must all receive a line and a context, and return a value.
 import re
 import os
 from math import log
-import nltk
-#import en_core_web_md
-#from nltk.sentiment.vader import SentimentIntensityAnalyzer
+# import nltk
+# import en_core_web_md
+# from nltk.sentiment.vader import SentimentIntensityAnalyzer
 
-# load word probabilities
+#load word probabilities
 #word_probabilities = {}
 #
 #word_prevalence_path = os.path.join(os.path.dirname(__file__), 'data', 'word_prevalence.txt')
@@ -21,6 +21,7 @@ import nltk
 #        word, prob = line.split()
 #        word_probabilities[word] = float(prob)
 #
+
 
 def _extract_full_correspondence_from_context(line, context):
     # TODO maybe the context should only be BACKWARDS!

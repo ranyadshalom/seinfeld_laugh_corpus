@@ -2,7 +2,7 @@ The Seinfeld Corpus
 ===================
 
 The Seinfeld Corpus is a humor annotated corpus of 96 Seinfeld episodes
-from seasons 4-9. You can read about the methods we used to generate it in the project's `paper`_.
+from seasons 4-9. You can read about the methods we used to generate it along with some interesting statistics in the project's `paper`_ or in this `blog post`_ .
 
 The raw corpus can be found in the `corpus`_ directory of this repository.
 
@@ -92,4 +92,5 @@ More Information
 
 
 .. _paper: http://TODOpaper
+.. _blog post: http://TODO
 .. _corpus: https://github.com/ranyadshalom/the_seinfeld_corpus/tree/master/the_corpus

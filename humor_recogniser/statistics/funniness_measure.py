@@ -1,5 +1,6 @@
 from collections import Counter
 from collections import defaultdict
+import re
 from functools import reduce
 import csv
 import nltk
@@ -7,7 +8,8 @@ from nltk.stem.wordnet import WordNetLemmatizer
 from numpy import mean
 import numpy as np
 from sklearn.cluster import KMeans
-
+import matplotlib.pyplot as plt
+import matplotlib_venn as venn
 
 from humor_recogniser.screenplay import Screenplay
 from humor_recogniser.ml_humor_recogniser import read_data
@@ -62,11 +64,14 @@ for character, lines, laughs in aggregated_counts:
 # cluster funniness vectors for each episode
 def get_funniness_vector(args):
     episode_name, characters_laughs = args
-    characters_laughs = {c[0]: c[1] for c in characters_laughs}
+    characters_laughs = {c[0]: c[2] / c[1] for c in characters_laughs}
     v = []
     for character in ["JERRY", "GEORGE", "ELAINE", "KRAMER"]:
         v.append(characters_laughs[character])
-    return (np.array(v), episode_name)
+
+    v= np.array(v)
+    norm = np.linalg.norm(v, ord=1)
+    return (v / norm, episode_name[:-7])
 
 vectors_and_episode_names = list(map(get_funniness_vector, episodes_results.items()))
 X = np.array([x for x, _ in vectors_and_episode_names])
@@ -74,9 +79,9 @@ episode_names = [y for _, y in vectors_and_episode_names]
 
 kmeans = KMeans(n_clusters=4, random_state=0).fit(X)
 print("EPISODE CLUSTERING BY CHARACTER FUNNINESS VECTORS")
-for name, label in zip(episode_names, kmeans.labels_):
-    print("%s: %d" % (name,label))
-pass
+for vector_name, label in zip(vectors_and_episode_names, kmeans.labels_):
+    vector, name = vector_name
+    print("%s,%d,,%.4f,%.4f,%.4f,%.4f" % (name, label, vector[0], vector[1], vector[2],vector[3]))
 
 
 ##########################################################################
@@ -84,7 +89,7 @@ pass
 lmtz = WordNetLemmatizer()
 
 
-def find_trigger_words(all_lines_txt, funny_lines_txt):
+def find_trigger_words(all_lines_txt, funny_lines_txt, limit=30, normalization=True):
     all_words = [lmtz.lemmatize(word.lower()) for word in nltk.word_tokenize("\n".join(all_lines_txt))]
     funny_words = [lmtz.lemmatize(word.lower()) for word in nltk.word_tokenize("\n".join(funny_lines_txt))]
     all_words_dist = nltk.FreqDist(all_words)
@@ -96,14 +101,75 @@ def find_trigger_words(all_lines_txt, funny_lines_txt):
     word_funniness_sorted = [(word, funniness) for word, funniness in word_funniness.items()]
     word_funniness_sorted.sort(key=lambda x:x[1], reverse=True)
     print("word funniness:")
-    for word, funniness in word_funniness_sorted[:30]:
+    for word, funniness in word_funniness_sorted[:limit]:
         print("%s,%.3f" % (word, funniness))
+    return word_funniness_sorted[:limit]
 
 
 all_lines_txt = [line.txt for line in all_lines]
 funny_lines_txt = [line.txt for line in funny_lines]
-find_trigger_words(all_lines_txt, funny_lines_txt)
+trigger_words = find_trigger_words(all_lines_txt, funny_lines_txt, limit=33)
 ############################################################################
+# Analyze trigger words using LIWC word groups
+def load_liwc():
+    result = {}
+    with open("LIWC_Features.txt") as f:
+        for line in f:
+            try:
+                category, words = line.split(",", maxsplit=1)
+                words = [w.strip() for w in words.split(",")]
+                result[category] = words
+            except ValueError:
+                print("LIWC: Skipping line '%s'" % line)
+        return result
+
+liwc = load_liwc()
+trigger_words_categories = defaultdict(set)
+
+for trigger_word, _ in trigger_words:
+# for word in trigger_words:
+    for category, words in liwc.items():
+        for liwc_word in words:
+            if liwc_word.endswith("*"):
+                regex = "%s.*" % liwc_word[:-1]
+            else:
+                regex = liwc_word
+            if re.match(regex, trigger_word):
+                trigger_words_categories[category].add(trigger_word)
+
+trigger_words_categories_sorted = [(category, words) for category, words in trigger_words_categories.items()]
+trigger_words_categories_sorted.sort(key=lambda x: len(x[1]), reverse=True)
+for category, words in trigger_words_categories_sorted:
+    print("%s: %s" % (category, words))
+
+# plot venn diagrams
+sets = [s for _, s in trigger_words_categories_sorted[:3]]
+labels = tuple([l for l, _ in trigger_words_categories_sorted[:3]])
+venn.venn3(sets, set_labels=labels)
+plt.show()
+
+############################################################################
+
+# trigger words per episode:
+per_episode = []
+for screenplay in screenplays:
+    local_funny_lines = []
+    local_lines = []
+    print("Trigger words in '%s':" % screenplay.filename)
+    for i, line in enumerate(screenplay):
+        if isinstance(line, Laugh):
+            if isinstance(screenplay[i-1], Line):
+                local_funny_lines.append(screenplay[i-1])
+    episode_funny_text = [line.txt for line in local_funny_lines]
+    per_episode.append((screenplay.filename,
+                       find_trigger_words(funny_lines_txt, episode_funny_text, limit=3)))
+
+for episode_name, trigger_words in per_episode:
+    if any(y > 0.7 for _,y in trigger_words):
+        formatted = episode_name[9:-7].replace("."," ")
+        print("%s,%s,%.3f" % (formatted, trigger_words[0][0], trigger_words[0][1]))
+
+#################################################################
 
 
 # trigger words for each character:
@@ -128,4 +194,7 @@ with open('funniness_measures.csv', 'w') as csvfile:
 
     for name in dict_for_csv.keys():
         csvwriter.writerow({'character': name, **dict_for_csv[name]})
+############################################################################
+
+
 

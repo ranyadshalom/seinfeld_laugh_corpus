@@ -6,8 +6,8 @@ Not done...
 import os
 import argparse
 import logging
-from sklearn import linear_model
-from sklearn.feature_extraction import DictVectorizer
+# from sklearn import linear_model
+# from sklearn.feature_extraction import DictVectorizer
 
 # project imports
 from .screenplay import Screenplay
@@ -15,19 +15,6 @@ from .feature_extractor import FeatureExtractor
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
-
-# feature_extractor = FeatureExtractor()
-# vec = DictVectorizer()
-
-
-def run(data_folder):
-    data = read_data(data_folder)
-
-    test_size = int(len(data) * 0.2)
-    train_set, test_set = data[test_size:], data[:test_size]
-
-    classifier = get_classifier(train_set)
-    test_classifier(test_set, classifier)
 
 
 def read_data(data_folder):
@@ -41,6 +28,10 @@ def read_data(data_folder):
         except Exception as e:
             print("ERROR incompatible data file '%s'. Skipped. (%s)" % (file, e))
     return data
+
+
+# feature_extractor = FeatureExtractor()
+# vec = DictVectorizer()
 
 #
 #def get_classifier(train_set):
@@ -90,6 +81,17 @@ def read_data(data_folder):
 #    logger.info("Precision: %.4f" % precision)
 #    logger.info("Recall: %.4f" % recall)
 #   logger.info("F1: %.2f" % (2*(precision*recall)/(precision+recall)))
+
+#
+#def run(data_folder):
+#    data = read_data(data_folder)
+#
+#    test_size = int(len(data) * 0.2)
+#    train_set, test_set = data[test_size:], data[:test_size]
+#
+#    classifier = get_classifier(train_set)
+#    test_classifier(test_set, classifier)
+#
 
 
 if __name__ == '__main__':
