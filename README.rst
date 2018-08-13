@@ -91,6 +91,6 @@ More Information
    ‘external_tools’ folder. We have chosen not to include them in this repository.
 
 
-.. _paper: http://TODOpaper
+.. _paper: https://github.com/ranyadshalom/the_seinfeld_corpus/raw/master/paper.pdf
 .. _blog post: http://TODO
 .. _corpus: https://github.com/ranyadshalom/the_seinfeld_corpus/tree/master/the_corpus
