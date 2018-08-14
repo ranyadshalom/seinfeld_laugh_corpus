@@ -7,6 +7,6 @@ def get():
     """
     :return:  The "Seinfeld" Corpus as a list of Screenplay objects.
     """
-    corpus_path = os.path.join('the_corpus')
+    corpus_path = os.path.join(os.path.dirname(__file__), 'the_corpus')
     return read_data(corpus_path)
 
