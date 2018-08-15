@@ -22,7 +22,7 @@ Quick Start
 .. code:: python
 
    >>> from seinfeld_laugh_corpus import corpus
-   >>> seinfeld = corpus.get()
+   >>> seinfeld = corpus.load()
 
    >>> # first index is the episode number, second index is the line number.
    >>> print(seinfeld[1][0])

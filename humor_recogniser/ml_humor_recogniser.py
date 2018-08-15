@@ -17,13 +17,13 @@ logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
 
-def read_data(data_folder):
+def read_data(data_folder, fold_laughs):
     data = []
     files = (f for f in os.listdir(data_folder) if os.path.isfile(data_folder + '/' + f))
 
     for file in files:
         try:
-            screenplay = Screenplay.from_file("%s/%s" % (data_folder, file))
+            screenplay = Screenplay.from_file("%s/%s" % (data_folder, file), fold_laughs)
             data.append(screenplay)
         except Exception as e:
             print("ERROR incompatible data file '%s'. Skipped. (%s)" % (file, e))
