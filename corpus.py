@@ -63,6 +63,3 @@ def load(fold_laughs=False):
     screenplays = read_data(corpus_path, fold_laughs)
     corpus = Corpus(screenplays)
     return corpus
-
-
-load() # tODO remove this line

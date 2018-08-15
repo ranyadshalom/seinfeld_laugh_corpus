@@ -30,6 +30,28 @@ Quick Start
    >>> print(seinfeld[1][1])
    Laugh(time=2.3)
 
+
+Getting a specific episode:
+
+.. code:: python
+
+   >>> seinfeld.search("marine biologist")
+   Screenplay('S05E14 The Marine Biologist')
+   >>> seinfeld[(5,14)]
+   Screenplay('S05E14 The Marine Biologist')
+
+You can also load the corpus with the laughs folded into the lines. In that case, if a line is followed by a laugh, its "is_funny" attribute will be set to True.
+
+.. code:: python
+
+   >>> seinfeld = corpus.load(fold_laughs=True)
+   >>> print(seinfeld[1][0])
+   Line(character='JERRY', txt='Have you ever called someone and were  disappointed when they answered?', start=0.62, end=5.011, is_funny=True, laugh_time=2.3)
+
+
+----
+
+
 From the corpus:
 
 ::
