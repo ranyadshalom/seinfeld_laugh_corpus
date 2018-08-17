@@ -1,8 +1,8 @@
 """
 Here lies all the code that isn't actually needed, but can be useful when debugging and thus I don't want to get rid of.
 """
-from timeit import default_timer as timer
 from math import log10
+from timeit import default_timer as timer
 
 
 def measure_execution_time(foo):

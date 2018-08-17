@@ -1,7 +1,7 @@
-from collections import Counter
 import argparse
 import re
 import sys
+from collections import Counter
 
 sys.path.append("..")
 

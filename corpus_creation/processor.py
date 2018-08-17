@@ -1,17 +1,17 @@
 import argparse
+import ntpath
 import os
 import subprocess
 import traceback
-import ntpath
 
+from config import FFMPEG_PATH, SOX_PATH
+from data_merger import data_merger
 # internal imports
 from laugh_extraction import extract_laughter_times
 from screenplay_downloader import screenplay_downloader
 from screenplay_formatter import screenplay_parser
-from data_merger import data_merger
 from subtitle_getter import subtitle_getter
 from subtitle_getter.subtitle_getter import SubtitlesNotInSyncException
-from config import FFMPEG_PATH, SOX_PATH
 
 
 def run(file_path, output_path):

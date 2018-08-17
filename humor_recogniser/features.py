@@ -5,9 +5,8 @@ This module is not operational. Sorry.
 All the features in this module will automatically be extracted by the FeatureExtractor object.
 They must all receive a line and a context, and return a value.
 """
-import re
-import os
-from math import log
+
+
 # import nltk
 # import en_core_web_md
 # from nltk.sentiment.vader import SentimentIntensityAnalyzer

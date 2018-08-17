@@ -5,11 +5,12 @@ A module that creates the annotated Seinfeld corpus from scratch, given the epis
 # python imports
 import argparse
 import os
-import psutil
 import subprocess
 
+import psutil
+
+
 # internal imports
-from processor import Processor
 
 
 def run(episodes_path, output_path):

@@ -1,8 +1,9 @@
 import argparse
-from numpy import mean, array_split, array, median, percentile, std, sqrt, isinf
-from scipy.io.wavfile import read
-from collections import Counter, namedtuple
 import sys
+from collections import namedtuple
+
+from numpy import mean, array_split, array, median, std, sqrt, isinf
+from scipy.io.wavfile import read
 
 sys.path.insert(0, '..')
 sys.path.insert(0, '.')
