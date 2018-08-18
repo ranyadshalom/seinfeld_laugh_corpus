@@ -2,8 +2,8 @@ import logging
 import logging.config
 import types
 
-from .screenplay import Line, Laugh
 from humor_recogniser import features as features
+from .screenplay import Line, Laugh
 
 
 class FeatureExtractor:

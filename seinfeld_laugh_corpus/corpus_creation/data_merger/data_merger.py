@@ -14,12 +14,13 @@ dialog dialog dialog
 [...]
 """
 import argparse
-import pysrt
-import re
-from collections import namedtuple
-from collections import defaultdict
 import os
+import re
 import sys
+from collections import defaultdict
+from collections import namedtuple
+
+import pysrt
 
 Subtitle = namedtuple('Subtitle', ["txt", "start", "end"])   # text (dialog), start (in seconds), end (in seconds)
 Result = namedtuple('Result', ["k", "score"])   # an object that contains the result of the calculations from

@@ -2,16 +2,16 @@
 Not done...
 """
 
-# python imports
-import os
 import argparse
 import logging
-# from sklearn import linear_model
-# from sklearn.feature_extraction import DictVectorizer
+# python imports
+import os
 
 # project imports
 from .screenplay import Screenplay
-from .feature_extractor import FeatureExtractor
+
+# from sklearn import linear_model
+# from sklearn.feature_extraction import DictVectorizer
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)

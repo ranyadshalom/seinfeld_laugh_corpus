@@ -1,9 +1,10 @@
 """
 This is a crawler that downloads screenplays from 'seinology.com' given the season and episode numbers.
 """
-from bs4 import BeautifulSoup
-import requests
 import re
+
+import requests
+from bs4 import BeautifulSoup
 
 MIN_LENGTH = 13000  # if the screenplay has less characters, something is probably wrong.
 SEINOLOGY_SCRIPTS_URL = "http://www.seinology.com/scripts/"

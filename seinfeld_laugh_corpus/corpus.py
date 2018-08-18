@@ -1,7 +1,7 @@
 import os
 import re
 
-from humor_recogniser.ml_humor_recogniser import read_data
+from seinfeld_laugh_corpus.humor_recogniser.ml_humor_recogniser import read_data
 
 
 class Corpus:

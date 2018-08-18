@@ -2,7 +2,7 @@ Seinfeld Laugh Corpus
 =====================
 
 Seinfeld Laugh Corpus is a humor annotated corpus of 96 Seinfeld episodes
-from seasons 4-9. You can read about the methods we used to generate it along with some interesting statistics in the project's `paper`_ or in this `blog post`_ .
+from seasons 4-9. You can read about the methods we used to generate it along with some interesting statistics in the project's `paper`_.
 
 The raw corpus can be found in the `corpus`_ directory of this repository.
 
@@ -14,7 +14,7 @@ On Python 3:
 
 .. code:: sh
 
-   $ pip install seinfeld_laugh_corpus
+   $ pip3 install seinfeld_laugh_corpus
 
 Quick Start
 ~~~~~~~~~~~
@@ -114,5 +114,4 @@ More Information
 
 
 .. _paper: https://github.com/ranyadshalom/the_seinfeld_corpus/raw/master/paper.pdf
-.. _blog post: http://TODO
-.. _corpus: https://github.com/ranyadshalom/the_seinfeld_corpus/tree/master/the_corpus
+.. _corpus: https://github.com/ranyadshalom/seinfeld_laugh_corpus/tree/master/seinfeld_laugh_corpus/the_corpus

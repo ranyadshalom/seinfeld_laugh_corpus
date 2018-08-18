@@ -1,15 +1,16 @@
-import pysrt
-import re
-import requests
-import os
-import subprocess
-import ntpath
 import gzip
+import ntpath
+import os
+import re
+import subprocess
 import sys
 from time import sleep
-from scipy.io.wavfile import read
-from numpy import mean, array_split, array, std, median, sqrt, isinf
+
+import pysrt
+import requests
+from numpy import mean, array_split, array, std, sqrt, isinf
 from pythonopensubtitles.opensubtitles import OpenSubtitles
+from scipy.io.wavfile import read
 
 sys.path.insert(0, '..')
 sys.path.insert(0, '.')
