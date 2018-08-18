@@ -311,6 +311,7 @@ Bravo, Vincent. Bravo.
 215.266
 What?
 216.931
+# VINCENT
 216.931
 Did you enjoy the movie?
 218.597
@@ -318,6 +319,7 @@ Did you enjoy the movie?
 219.037
 Who is this?
 221.105
+# VINCENT
 221.472
 It's Vincent.
 223.472
@@ -325,6 +327,7 @@ It's Vincent.
 223.541
 Of Vincent's picks?
 226.439
+# VINCENT
 226.578
 The same.
 228.373
@@ -361,6 +364,7 @@ He's never at the video store.
 246.297
 They said he sets his own hours.
 248.297
+# PLAYER
 249.500
 Little help! Hey.
 250.915
@@ -975,7 +979,7 @@ How long is this weekend, anyway?
 660.945
 Hello?
 662.759
-# VINCENT(O.C.): 
+# VINCENT
 662.759
 How's the movie, Elaine?
 664.572
@@ -985,7 +989,7 @@ How's the movie, Elaine?
 665.416
 Vincent?
 666.899
-# VINCENT(O.C.): 
+# VINCENT
 666.899
 A Gene pick.
 668.383
@@ -1084,12 +1088,15 @@ Gotta be an easier way.
 729.411
 729.400
 **LOL**
+# NURSE
 729.480
 Doctor, how's her coma?
 731.172
+# DOCTOR
 731.248
 Oh, exactly the same.
 733.077
+# DOCTOR
 733.150
 Wait a minute.
 734.444
@@ -1098,11 +1105,12 @@ She's coming out of the coma.
 736.813
 737.100
 **LOL**
+# DOCTOR
 739.190
 Mrs. Albright, can you hear me?
 Are you okay?
 742.418
-# ALLBRIGHT
+# ALLBRIGHT 
 742.493
 I feel so rested and refreshed.
 746.029
@@ -1251,7 +1259,7 @@ not to know that.
 848.464
 848.400
 **LOL**
-# GEORGE(O.C.): 
+# GEORGE
 848.532
 How was Eric Roberts
 as the husband?
@@ -1260,7 +1268,7 @@ as the husband?
 850.901
 Oh, unforgettable.
 852.628
-# GEORGE(O.C.): 
+# GEORGE
 # KRAMER
 852.703
 I gotta find Elaine.
@@ -1474,7 +1482,7 @@ Not you.
 1001.277
 1001.900
 **LOL**
-# OLD WOMAN
+# OLD WOMAN 
 1004.154
 Oh, these brittle bones.
 1006.620
@@ -1485,6 +1493,7 @@ How I long to be rid of the pain.
 1013.564
 Hello.
 1015.531
+# VINCENT
 1015.531
 Elaine, it's Vincent.
 1017.498
@@ -1495,6 +1504,7 @@ I have to meet you.
 1021.798
 1019.500
 **LOL**
+# VINCENT
 1021.872
 No, I can't bear to have
 anyone see me.
@@ -1516,7 +1526,7 @@ All right.
 1039.652
 1039.000
 **LOL**
-# VINCENT(O.C.): 
+# VINCENT
 1039.723
 But can you bring me a few things
 from the store?

@@ -67,6 +67,18 @@ def split_word_with_parenthesis(word):
             return word.split(l)[0] + l, word.split(l)[1]
 
 
+def prepreocss(screeplay):
+    # remove problematic phrases:
+    phrases_to_remove = ["(V.O)", "(V.O.)",    # voice over
+                        "(O.C)", "(O.C.)",    # off camera
+                        "(O.S)", "(O.S.)",    # off screen
+                        ]
+    for phrase in phrases_to_remove:
+        screeplay = screeplay.replace(phrase, "")
+
+    return screeplay
+
+
 def process(words_generator):
     result = ""
     word = next(words_generator)
@@ -159,7 +171,7 @@ def process_scene_heading(word, word_generator):
 
 
 def is_character(word):
-    return word.isupper() and len(word) > 2 and word[:-1].replace(".", "").isalpha()
+   return word.isupper() and len(word) > 2 and word[:-1].replace(".", "").isalpha()
 
 
 def is_scene_heading(word):
@@ -181,6 +193,7 @@ def reformat_screenplay(screenplay_as_str):
     :param screenplay_as_str:
     :return: a newly formatted screenplay
     """
+    screenplay_as_str = prepreocss(screenplay_as_str)
     words_generator = get_words_generator(screenplay_as_str)
     word = next(words_generator)
     return process(words_generator)
