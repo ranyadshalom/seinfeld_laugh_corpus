@@ -16,7 +16,7 @@ class Corpus:
             self.screenplays_dict[(screenplay.season, screenplay.episode)] = screenplay
 
     def __iter__(self):
-        for screenplay in self.screenplays.items():
+        for screenplay in self.screenplays:
             yield screenplay
 
     def __getitem__(self, key):
