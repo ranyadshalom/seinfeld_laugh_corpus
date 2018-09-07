@@ -3,19 +3,18 @@ import ntpath
 import os
 import subprocess
 import traceback
+import importlib
 
 from config import FFMPEG_PATH, SOX_PATH
 from data_merger import data_merger
+
 # internal imports
-from laugh_extraction import extract_laughter_times
-from screenplay_downloader import screenplay_downloader
-from screenplay_formatter import screenplay_parser
 from subtitle_getter import subtitle_getter
 from subtitle_getter.subtitle_getter import SubtitlesNotInSyncException
 
 
-def run(file_path, output_path):
-    processor = Processor(file_path, output_path)
+def run(file_path):
+    processor = Processor(file_path)
     processor.process()
 
 
@@ -23,13 +22,39 @@ class Processor:
     """
     A class that generates corpus data from a Seinfeld episode in the .mkv file format.
     """
-    def __init__(self, filepath, outputpath):
-        self.filepath = filepath      # path of the video file of the episode
-        self.outputpath = outputpath  # path of the folder in which to write the output
+
+    def __init__(self, filepath, show_name='seinfeld'):
+        """
+        :param filepath: Path of the video file of the episode. Output will be written in the same path as the input's.
+        :param sitcom_specific_dependencies: For each show (e.g. Seinfeld, Friends...) the processing is a little
+                                           different. This parameter is a dictionary the consists of
+                                           {object_name: object_instance} key-value pairs of objects that encapsulate
+                                           show-specific code. The default is Seinfeld.
+        """
+        self.filepath = filepath
         self.temp_files = {}               # paths of all the temporary files that will be used in the processing
         self.files_to_keep = []
         self.filename = ntpath.basename(self.filepath)
         self.merged_filename = self.filepath.rsplit(".", 1)[0] + '.merged'
+        self.dependencies = self._get_dependencies(show_name)
+
+    @staticmethod
+    def _get_dependencies(show_name):
+        """
+        Dynamically import the show-dependent parts of the code, i.e. for the show name 'seinfeld,' the class
+        "SeinfeldScreenplayDownloader" will be loaded, and for the show name 'friends,' the class
+        "FriendsScreenplayDownloader."
+        :param show_name: A show's name.
+        :return: A dictionary of the form {'name', class_instance}
+        """
+        module_names = {'screenplay_downloader': "%s%s" % (show_name.title(), 'ScreenplayDownloader'),
+                        'screenplay_parser': "%s%s" % (show_name.title(), 'ScreenplayParser'),
+                        'laugh_times_extractor': "%s%s" % (show_name.title(), 'LaughTimesExtractor')}
+        dependencies = {}
+        for package, cls_name in module_names.items():
+            module = importlib.import_module(".%s_%s" % (show_name, package), package=package)
+            dependencies[package] = getattr(module, cls_name)()
+        return dependencies
 
     def process(self):
         try:
@@ -43,7 +68,7 @@ class Processor:
             self._extract_laughter_times()
             self._get_subtitles()
             self._get_screenplay()
-            self._format_screenplay()
+            self._parse_screenplay()
             self._merge_data()
         except LaughExtractionException as e:
             print("ERROR for '%s': Laugh extraction error. %s" % (self.filename, e))
@@ -107,7 +132,8 @@ class Processor:
         print("Extracting laughter times...")
         self.temp_files['laughter_times'] = self.temp_files['laugh_track'].rsplit(".", 1)[0] + '.laugh'
         try:
-            extract_laughter_times.run(input=self.temp_files['laugh_track'], output=self.temp_files['laughter_times'])
+            extractor = self.dependencies['laugh_times_extractor']
+            extractor.run(input=self.temp_files['laugh_track'], output=self.temp_files['laughter_times'])
         except Exception as e:
             del self.temp_files['laughter_times']
             raise LaughExtractionException(str(e))
@@ -126,15 +152,17 @@ class Processor:
         print("Getting screenplay...")
         self.temp_files['screenplay'] = self.filepath.rsplit(".", 1)[0] + '.screenplay'
         try:
-            screenplay_downloader.run(input_filename=self.filename, output_filename=self.temp_files['screenplay'])
+            downloader = self.dependencies['screenplay_downloader']
+            downloader.run(input_filename=self.filename, output_filename=self.temp_files['screenplay'])
         except Exception as e:
             del self.temp_files['screenplay']
             raise Exception("Error getting screenplay: %s" % str(e))
 
-    def _format_screenplay(self):
+    def _parse_screenplay(self):
         print("Formatting & parsing screenplay...")
         self.temp_files['formatted_screenplay'] = self.filepath.rsplit(".", 1)[0] + '.formatted'
         try:
+            screenplay_parser = self.dependencies['screenplay_parser']
             screenplay_parser.run(self.temp_files['screenplay'], self.temp_files['formatted_screenplay'])
         except Exception as e:
             del self.temp_files['formatted_screenplay']
@@ -166,16 +194,12 @@ class MergeException(Exception):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Process 1 Seinfeld episode video file and create a .merged corpus file.")
+    parser = argparse.ArgumentParser(description="Process 1 episode video file and create a .merged corpus file.")
     parser.add_argument('video_file', help='Path to the video file')
-    parser.add_argument('output_path', help='Output will be written to this path.')
     args = parser.parse_args()
     video_file = args.video_file
-    output_path = args.output_path
 
     if not os.path.exists(video_file):
         print("'%s' illegal path!\n" % episodes_path)
-    elif not os.path.isdir(output_path):
-        print("'%s' is not a directory!" % output_path)
 
-    run(video_file, output_path)
+    run(video_file)

@@ -17,7 +17,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
 
-def read_data(data_folder, fold_laughs):
+def read_data(data_folder, fold_laughs=False):
     data = []
     files = (f for f in os.listdir(data_folder) if os.path.isfile(data_folder + '/' + f))
 
