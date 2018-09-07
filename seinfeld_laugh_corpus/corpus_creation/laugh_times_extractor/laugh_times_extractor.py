@@ -8,7 +8,7 @@ from scipy.io.wavfile import read
 sys.path.insert(0, '..')
 sys.path.insert(0, '.')
 
-from corpus_creation.utils.utils import log10wrapper
+from seinfeld_laugh_corpus.corpus_creation.utils.utils import log10wrapper
 
 Laugh = namedtuple('Laugh', ['time', 'vol'])
 
