@@ -57,3 +57,17 @@ class SeinfeldScreenplayDownloader(ScreenplayDownloader):
         page_number = episodes_per_season_commulative[season_num - 1] + episode_num
         return SEINOLOGY_SCRIPTS_URL + ("/script-%02dand%02d.shtml" % (page_number, page_number+1))
 
+    def _cleanup(self, screenplay_txt):
+        """
+        Remove redundant text from the screenplay.
+        """
+        # split lines
+        lines = re.split(r"[\n\r\t]+", screenplay_txt)
+        lines = [l for l in lines if l]
+        # capitalize all character names (in case script has characters like 'Mr. VISAKI')
+        lines = self._capitalize_all_character_names(lines)
+        # cut out irrelevant part
+        upper_delimiter = [delim for delim in lines if "===" in delim]
+        upper_delimiter_i = lines.index(upper_delimiter[0]) + 1
+        lower_delimiter_i = len(lines)-1 if "end" in lines[-1].lower() else len(lines)
+        return "\n".join(lines[upper_delimiter_i:lower_delimiter_i])

@@ -32,7 +32,7 @@ class SeinfeldScreenplayParser(ScreenplayParser):
             yield '\n'
             for word in line.split():
                 if self._word_has_parenthesis_inside(word):
-                    word_a, word_b = split_word_with_parenthesis(word)
+                    word_a, word_b = self._split_word_with_parenthesis(word)
                     yield word_a
                     yield word_b
                 else:
