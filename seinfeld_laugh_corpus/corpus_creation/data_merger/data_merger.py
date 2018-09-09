@@ -120,9 +120,8 @@ def parse_screenplay(screenplay_path):
                     result.append(['character_name', line]) # a character's name
                 else:
                     if len(result) == 0:
-                        print("Warning: screenplay does not start with a character name. Assuming it is JERRY.")
-                        # The screenplay's initial dialog is usually Jerry's stand up.
-                        result.append(['character_name', 'JERRY\n'])
+                        print("Warning: screenplay does not start with a character name. Assuming it is UNKNOWN.")
+                        result.append(['character_name', 'UNKNOWN\n'])
                     if result[-1][0] == 'dialog':
                         result[-1][1] += line
                     else:
@@ -146,27 +145,63 @@ def parse_laugh_track(laugh_track_txt_path):
 def parse_subtitles(srt):
     result = []
     subs = pysrt.open(srt, encoding='ansi ', error_handling='ignore')
+    subs = remove_sound_descriptions(subs)
     for i, sub in enumerate(subs):
         if i and sub.text == subs[i-1].text:
             continue    # double subtitle
         if re.search(r'\w{3,20}\.\w{2,20}', sub.text):
             print("Commercial spotted, subtitle '%s' removed." % sub.text)
             continue
-        start, end = get_sub_time_in_seconds(sub.start), get_sub_time_in_seconds(sub.end)
         sub.text = sub.text.strip("-")
         sub.text = re.sub(r'</?..?>', '', sub.text)     # remove tags
-        if '-'==sub.text[0] or '\n-' in sub.text:
-            # if more than one character is speaking, split subtitle
-            splitted = [s for s in re.split('(?:^-)|(?:\n-)',sub.text) if s]
-            if len(splitted) > 2:
-                print("WARNING: problematic subtitle '%s'." % sub.text)
-                splitted = splitted[:2]
-            sub_a, sub_b = splitted
-            between_time = start/2 + end/2
-            result.append(Subtitle(txt=sub_a, start= start, end=between_time))
-            result.append(Subtitle(txt=sub_b, start=between_time, end=end))
-        else:
-            result.append(Subtitle(txt=sub.text, start=start, end=end))
+        splitted_subs = split_sub_if_it_has_more_than_one_character(sub)
+        for sub in splitted_subs:
+            result.append(sub)
+    return result
+
+
+def remove_sound_descriptions(subs):
+    """
+    Removes phrases that are enclosed with square brackets in the subtitles, for example [KNOCKING ON DOOR]
+    :param subs:
+    :return:
+    """
+    for sub in subs:
+        if '[' in sub.text and ']' in sub.text:
+            t = sub.text
+            sub.text = t[:t.index('[')] + t[t.index(']') + 1:]
+            sub.text = sub.text.strip()
+    subs = [sub for sub in subs if sub.text]
+    return subs
+
+
+def split_sub_if_it_has_more_than_one_character(sub):
+    """
+    :param sub: a subtitle
+    :return: a list of the splitted subtitles.
+    """
+    result, splitted = [], []
+    start, end = get_sub_time_in_seconds(sub.start), get_sub_time_in_seconds(sub.end)
+    if '-'==sub.text[0] or '\n-' in sub.text:
+        # '-' in a subtitle denotes another speaker.
+        splitted = [s for s in re.split('(?:^-)|(?:\n-)',sub.text) if s]
+    elif ':' in sub.text:
+        # if the speaker name is in the subtitle, e.g. JERRY: I told you!, remove and split.
+        splitted = re.split(r'\w{3,10}:', sub.text)
+        splitted = [s.strip() for s in splitted if s]
+        if len(splitted) == 1:
+            sub.text = splitted[0]
+
+    if len(splitted) > 1:
+        if len(splitted) > 2:
+            print("WARNING: problematic subtitle '%s'." % sub.text)
+            splitted = splitted[:2]
+        sub_a, sub_b = splitted
+        between_time = start/2 + end/2
+        result.append(Subtitle(txt=sub_a, start=start, end=between_time))
+        result.append(Subtitle(txt=sub_b, start=between_time, end=end))
+    else:
+        result.append(Subtitle(txt=sub.text, start=start, end=end))
     return result
 
 

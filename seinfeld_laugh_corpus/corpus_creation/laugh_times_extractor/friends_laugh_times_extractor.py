@@ -10,7 +10,7 @@ from seinfeld_laugh_corpus.corpus_creation.laugh_times_extractor.laugh_times_ext
 
 def run(input, output):
     laugh_times_extractor = FriendsLaughTimesExtractor()
-    laugh_times_extractor.to_file(input, output)
+    laugh_times_extractor.run(input, output)
 
 
 class FriendsLaughTimesExtractor(LaughTimesExtractor):
@@ -39,10 +39,21 @@ class FriendsLaughTimesExtractor(LaughTimesExtractor):
                     print("'Friends' theme song detected from %.2d:%.2d to %.2d:%.2d - Silencing it." %
                           (self._get_minutes_and_seconds((i - k) / self.db_measurement_chunks_per_second) +
                            self._get_minutes_and_seconds(i / self.db_measurement_chunks_per_second)))
-                    while k != 0:
+                    while k != self.db_measurement_chunks_per_second // 2:  # leave half a second: opening scene almost always ends with a laugh that will be spotted as part of the theme song.
                         dbs[i - k] = self.silence
                         k -= 1
                     break
+                elif min_theme_song_length <= k:
+                    print("'Friends' theme song is longer than expected (from %.2d:%.2d to %.2d:%.2d) - Silencing the last %d seconds of it." %
+                          (self._get_minutes_and_seconds((i - k) / self.db_measurement_chunks_per_second) +
+                           self._get_minutes_and_seconds(i / self.db_measurement_chunks_per_second) +
+                           (self.max_theme_song_length_in_seconds,)))
+                    k = max_theme_song_length
+                    while k != self.db_measurement_chunks_per_second // 2:  # leave half a second: opening scene almost always ends with a laugh that will be spotted as part of the theme song.
+                        dbs[i - k] = self.silence
+                        k -= 1
+                    break
+
                 k = 0
 
     @staticmethod

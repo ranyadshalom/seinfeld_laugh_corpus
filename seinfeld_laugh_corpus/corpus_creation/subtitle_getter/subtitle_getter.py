@@ -23,14 +23,6 @@ db_measurement_chunks_per_second = 20   # chunks (to measure dB of) per second.
 ost_retry = 60                          # number of seconds to wait before retrying to connect to opensubtitles.
 sync_threshold = 0.094                  # A float between 0 to 1. The higher the number, the more in-sync the subtitles.
 
-ost = OpenSubtitles()
-try:
-    ost_token = ost.login(opensubtitles_credentials['user'], opensubtitles_credentials['password'])
-except Exception as e:
-    print("ERROR getting Opensubtitles token: %s.\n Retrying in %d seconds..." % (str(e), ost_retry))
-    sleep(ost_retry)
-    ost_retry *= 2  # exponential backoff
-
 
 def run(episode_video, episode_audio, output):
     dbs = get_audio_dbs(episode_audio)
@@ -86,6 +78,7 @@ def fetch_subtitles_from_opensubtitles(episode_video_path, dbs, output):
 
 
 def get_opensubtitles_search_results(episode_video_path):
+    ost = get_open_subtitles_object()
     episode_video = ntpath.basename(episode_video_path)
     retry = 60
     # downloading code
@@ -103,6 +96,20 @@ def get_opensubtitles_search_results(episode_video_path):
             retry *= 2
         else:
             return results
+
+
+def get_open_subtitles_object():
+    """
+    :return: a logged-in OpenSubtitles object.
+    """
+    ost = OpenSubtitles()
+    try:
+        ost_token = ost.login(opensubtitles_credentials['user'], opensubtitles_credentials['password'])
+    except Exception as e:
+        print("ERROR getting Opensubtitles token: %s.\n Retrying in %d seconds..." % (str(e), ost_retry))
+        sleep(ost_retry)
+        ost_retry *= 2  # exponential backoff
+    return ost
 
 
 def download_subtitle(result, output):
