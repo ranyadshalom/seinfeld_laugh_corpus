@@ -24,7 +24,7 @@ class FriendsScreenplayDownloader(ScreenplayDownloader):
         url_content = self._get_content(screenplay_url)
 
         # get text
-        soup = BeautifulSoup(url_content, 'html.parser')
+        soup = BeautifulSoup(url_content, 'lxml')
         if season_num < 10:
             second_hr = soup.find_all("hr", limit=2)[-1]
             s = second_hr.find_all_next("p")
@@ -56,8 +56,10 @@ class FriendsScreenplayDownloader(ScreenplayDownloader):
 
     def _cleanup(self, screenplay_txt):
         lines = re.split(r"[\n\r\t]+", screenplay_txt)
+        lines = [l for l in lines if l]
         lines = self._capitalize_all_character_names(lines)
-        return "\n".join((l for l in lines))
+        lines = lines[:-1] if "end" in lines[-1].lower() else lines
+        return "\n".join(lines)
 
 
 if __name__ == '__main__':

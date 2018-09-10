@@ -190,7 +190,7 @@ def split_sub_if_it_has_more_than_one_character(sub):
         splitted = re.split(r'\w{3,10}:', sub.text)
         splitted = [s.strip() for s in splitted if s]
         if len(splitted) == 1:
-            sub.text = splitted[0]
+            sub.text = splitted[0].strip()
 
     if len(splitted) > 1:
         if len(splitted) > 2:
