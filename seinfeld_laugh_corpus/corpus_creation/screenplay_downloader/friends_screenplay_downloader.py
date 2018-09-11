@@ -25,11 +25,12 @@ class FriendsScreenplayDownloader(ScreenplayDownloader):
 
         # get text
         soup = BeautifulSoup(url_content, 'lxml')
-        if season_num < 10:
-            second_hr = soup.find_all("hr", limit=2)[-1]
-            s = second_hr.find_all_next("p")
-        else:
-            s = soup.find_all("p")
+        try:
+            header = soup.find_all("hr", limit=2)[-1]
+        except IndexError:
+            header = soup.find("p", class_="scene")
+        s = header.find_all_next("p")
+        s = [tag for tag in s if not ('align' in tag.attrs or 'class' in tag.attrs)]
         screenplay_txt = "\n".join((line.get_text() for line in s if "transcribed by:" not in line.get_text().lower()))
         result = screenplay_txt
 
@@ -66,5 +67,5 @@ if __name__ == '__main__':
     # test
     downloader = FriendsScreenplayDownloader()
 
-    print(downloader.download("S04E02.mkv", "S04E02.screenplay"))
+    print(downloader.download("S10E01.mkv", "S10E01.screenplay"))
 
