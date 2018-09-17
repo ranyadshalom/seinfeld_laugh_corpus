@@ -23,13 +23,10 @@ class Processor:
     A class that generates corpus data from a Seinfeld episode in the .mkv file format.
     """
 
-    def __init__(self, filepath, show_name='friends'):
+    def __init__(self, filepath, show_name='bbt'):
         """
         :param filepath: Path of the video file of the episode. Output will be written in the same path as the input's.
-        :param sitcom_specific_dependencies: For each show (e.g. Seinfeld, Friends...) the processing is a little
-                                           different. This parameter is a dictionary the consists of
-                                           {object_name: object_instance} key-value pairs of objects that encapsulate
-                                           show-specific code. The default is Seinfeld.
+        :param show_name: Supported shows are 'seinfeld', 'friends' and 'bbt' (Big Bang Theory).
         """
         self.filepath = filepath
         self.temp_files = {}               # paths of all the temporary files that will be used in the processing

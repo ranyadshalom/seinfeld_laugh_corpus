@@ -56,6 +56,19 @@ class ScreenplayDownloader:
         raise NotImplementedError()
 
     @staticmethod
+    def _get_content(screenplay_url):
+        retry_num = 0
+        while True:
+            r = requests.get(screenplay_url)
+            if r.status_code == 200:
+                break
+            else:
+                if retry_num > 3:
+                    raise requests.HTTPError("Status code isn't 200")
+                retry_num += 1
+        return r.content
+
+    @staticmethod
     def _capitalize_all_character_names(lines):
         result = []
         for line in lines:
