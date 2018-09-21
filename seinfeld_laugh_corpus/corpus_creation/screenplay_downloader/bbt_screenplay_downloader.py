@@ -44,7 +44,7 @@ class BbtScreenplayDownloader(ScreenplayDownloader):
         lines = [l for l in lines if l.strip()]
         lines = self._capitalize_all_character_names(lines)
         lines = lines[:-1] if "end" in lines[-1].lower() else lines
-        return "\n".join(lines)
+        return "\n" + "\n".join(lines)
 
 
 if __name__ == '__main__':

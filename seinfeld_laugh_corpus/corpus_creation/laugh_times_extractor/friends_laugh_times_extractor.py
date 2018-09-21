@@ -36,20 +36,24 @@ class FriendsLaughTimesExtractor(LaughTimesExtractor):
                 k += 1
             else:
                 if min_theme_song_length <= k <= max_theme_song_length:
-                    print("'Friends' theme song detected from %.2d:%.2d to %.2d:%.2d - Silencing it." %
+                    print("Theme song detected from %.2d:%.2d to %.2d:%.2d - Silencing it." %
                           (self._get_minutes_and_seconds((i - k) / self.db_measurement_chunks_per_second) +
                            self._get_minutes_and_seconds(i / self.db_measurement_chunks_per_second)))
-                    while k != self.db_measurement_chunks_per_second // 2:  # leave half a second: opening scene almost always ends with a laugh that will be spotted as part of the theme song.
+                    # leave a second: opening scene almost always ends with a laugh that will be spotted as part of the theme song.
+                    k -= self.db_measurement_chunks_per_second
+                    while k != 0:
                         dbs[i - k] = self.silence
                         k -= 1
                     break
                 elif min_theme_song_length <= k:
-                    print("'Friends' theme song is longer than expected (from %.2d:%.2d to %.2d:%.2d) - Silencing the last %d seconds of it." %
+                    print("Theme song is longer than expected (from %.2d:%.2d to %.2d:%.2d) - Silencing the last %d seconds of it." %
                           (self._get_minutes_and_seconds((i - k) / self.db_measurement_chunks_per_second) +
                            self._get_minutes_and_seconds(i / self.db_measurement_chunks_per_second) +
                            (self.max_theme_song_length_in_seconds,)))
                     k = max_theme_song_length
-                    while k != self.db_measurement_chunks_per_second // 2:  # leave half a second: opening scene almost always ends with a laugh that will be spotted as part of the theme song.
+                    # leave a second: opening scene almost always ends with a laugh that will be spotted as part of the theme song.
+                    k -= self.db_measurement_chunks_per_second
+                    while k != 0:  # leave a second: opening scene almost always ends with a laugh that will be spotted as part of the theme song.
                         dbs[i - k] = self.silence
                         k -= 1
                     break

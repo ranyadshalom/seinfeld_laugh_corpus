@@ -171,6 +171,10 @@ def remove_sound_descriptions(subs):
             t = sub.text
             sub.text = t[:t.index('[')] + t[t.index(']') + 1:]
             sub.text = sub.text.strip()
+        if '(' in sub.text and ')' in sub.text:
+            t = sub.text
+            sub.text = t[:t.index('(')] + t[t.index(')') + 1:]
+            sub.text = sub.text.strip()
     subs = [sub for sub in subs if sub.text]
     return subs
 

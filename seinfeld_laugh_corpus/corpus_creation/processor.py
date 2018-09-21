@@ -33,6 +33,7 @@ class Processor:
         self.files_to_keep = []
         self.filename = ntpath.basename(self.filepath)
         self.merged_filename = self.filepath.rsplit(".", 1)[0] + '.merged'
+        self.full_show_name = show_name if show_name != 'bbt' else 'big bang theory'
         self.dependencies = self._get_dependencies(show_name)
 
     @staticmethod
@@ -140,7 +141,7 @@ class Processor:
         # audio file name is the same as the video's but with .wav extension
         self.temp_files['subtitles'] = self.filepath.rsplit(".", 1)[0] + '.srt'
         try:
-            subtitle_getter.run(self.filepath, self.temp_files['audio'], self.temp_files['subtitles'],)
+            subtitle_getter.run(self.filepath, self.temp_files['audio'], self.temp_files['subtitles'], self.full_show_name)
         except Exception as e:
             del self.temp_files['subtitles']
             raise Exception("Error getting subtitles: %s" % str(e))

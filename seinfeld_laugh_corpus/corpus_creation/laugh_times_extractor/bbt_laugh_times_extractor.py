@@ -14,7 +14,8 @@ def run(input, output):
 
 
 class BbtLaughTimesExtractor(FriendsLaughTimesExtractor):
-    pass
+    min_theme_song_length_in_seconds = 18
+    max_theme_song_length_in_seconds = 25
 
 
 if __name__ == '__main__':
